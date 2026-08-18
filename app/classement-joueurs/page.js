@@ -91,11 +91,11 @@ export default function ClassementJoueursPage() {
             >
               <span className="display text-lg w-7 text-center">
                 {row.pts > 0 && i === 0 ? (
-                  <Medal size={18} className="inline" style={{ color: '#D4AF37' }} />
+                  <Medal size={30} className="inline" style={{ color: '#D4AF37' }} />
                 ) : row.pts > 0 && i === 1 ? (
-                  <Medal size={18} className="inline" style={{ color: '#C0C0C0' }} />
+                  <Medal size={30} className="inline" style={{ color: '#C0C0C0' }} />
                 ) : row.pts > 0 && i === 2 ? (
-                  <Medal size={18} className="inline" style={{ color: '#CD7F32' }} />
+                  <Medal size={30} className="inline" style={{ color: '#CD7F32' }} />
                 ) : (
                   i + 1
                 )}
