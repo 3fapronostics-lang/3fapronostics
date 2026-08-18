@@ -31,7 +31,7 @@ export default function PronosticsPage() {
   const [draftPredictions, setDraftPredictions] = useState({});
   const [resultDrafts, setResultDrafts] = useState({});
   const [showAdd, setShowAdd] = useState(false);
-  const [newMatch, setNewMatch] = useState({ champ: 'elite', home_team_id: '', away_team_id: '', journee: '', kickoff_at: '' });
+  const [newMatch, setNewMatch] = useState({ champ: 'elite', home_team_id: '', away_team_id: '', journee: '', date: '', time: '14:00' });
   const [notice, setNotice] = useState('');
 
   const flash = (msg) => {
@@ -104,7 +104,7 @@ export default function PronosticsPage() {
   const isLocked = (m) => new Date() >= new Date(m.kickoff_at);
 
   const addMatch = async () => {
-    if (!newMatch.home_team_id || !newMatch.away_team_id || !newMatch.kickoff_at) return;
+    if (!newMatch.home_team_id || !newMatch.away_team_id || !newMatch.date) return;
     if (newMatch.home_team_id === newMatch.away_team_id) {
       flash('Les deux équipes doivent être différentes.');
       return;
@@ -114,13 +114,13 @@ export default function PronosticsPage() {
       home_team_id: newMatch.home_team_id,
       away_team_id: newMatch.away_team_id,
       journee: newMatch.journee ? parseInt(newMatch.journee, 10) : null,
-      kickoff_at: new Date(newMatch.kickoff_at).toISOString(),
+      kickoff_at: new Date(`${newMatch.date}T${newMatch.time}`).toISOString(),
     });
     if (error) {
       flash("Impossible d'ajouter ce match.");
       return;
     }
-    setNewMatch({ champ: newMatch.champ, home_team_id: '', away_team_id: '', journee: '', kickoff_at: '' });
+    setNewMatch({ champ: newMatch.champ, home_team_id: '', away_team_id: '', journee: '', date: '', time: '14:00' });
     setShowAdd(false);
     load();
   };
@@ -359,14 +359,27 @@ export default function PronosticsPage() {
                   />
                 </div>
                 <div className="flex-[2]">
-                  <label className="text-xs text-[#7C8AAE]">Date et heure</label>
+                  <label className="text-xs text-[#7C8AAE]">Date</label>
                   <input
-                    type="datetime-local"
-                    value={newMatch.kickoff_at}
-                    onChange={(e) => setNewMatch((n) => ({ ...n, kickoff_at: e.target.value }))}
+                    type="date"
+                    value={newMatch.date}
+                    onChange={(e) => setNewMatch((n) => ({ ...n, date: e.target.value }))}
                     className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="text-xs text-[#7C8AAE]">Heure</label>
+                <select
+                  value={newMatch.time}
+                  onChange={(e) => setNewMatch((n) => ({ ...n, time: e.target.value }))}
+                  className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
+                >
+                  <option value="12:00">12h00</option>
+                  <option value="14:00">14h00</option>
+                  <option value="16:00">16h00</option>
+                  <option value="18:00">18h00</option>
+                </select>
               </div>
               <button
                 onClick={addMatch}
