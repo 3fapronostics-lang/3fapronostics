@@ -8,6 +8,7 @@ import { Trophy, Lock } from 'lucide-react';
 export default function ChampionPick({ champ, teams, user, isAdmin, label }) {
   const [config, setConfig] = useState(null);
   const [myPick, setMyPick] = useState(null);
+  const [draftPick, setDraftPick] = useState(null);
   const [draftDeadline, setDraftDeadline] = useState('');
   const [draftWinner, setDraftWinner] = useState('');
   const [notice, setNotice] = useState('');
@@ -35,6 +36,7 @@ export default function ChampionPick({ champ, teams, user, isAdmin, label }) {
         .eq('user_id', user.id)
         .maybeSingle();
       setMyPick(mine?.team_id || null);
+      setDraftPick(mine?.team_id || null);
     }
   };
 
@@ -44,13 +46,24 @@ export default function ChampionPick({ champ, teams, user, isAdmin, label }) {
   }, [champ, user]);
 
   const locked = config?.deadline ? new Date() >= new Date(config.deadline) : false;
+  const dirty = draftPick && draftPick !== myPick;
 
-  const pick = async (teamId) => {
+  const selectDraft = (teamId) => {
     if (!user || locked) return;
-    await supabase
+    setDraftPick(teamId);
+  };
+
+  const validatePick = async () => {
+    if (!user || !draftPick || locked) return;
+    const { error } = await supabase
       .from('champion_predictions')
-      .upsert({ champ, user_id: user.id, team_id: teamId }, { onConflict: 'champ,user_id' });
-    setMyPick(teamId);
+      .upsert({ champ, user_id: user.id, team_id: draftPick }, { onConflict: 'champ,user_id' });
+    if (error) {
+      flash("Impossible d'enregistrer ce pronostic.");
+      return;
+    }
+    setMyPick(draftPick);
+    flash('Pronostic champion enregistré ✓');
   };
 
   const saveDeadline = async () => {
@@ -102,24 +115,41 @@ export default function ChampionPick({ champ, teams, user, isAdmin, label }) {
       )}
 
       {user && config?.deadline && (
-        <div className="flex flex-wrap gap-2">
-          {teams.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => pick(t.id)}
-              disabled={locked}
-              className={
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border ' +
-                (myPick === t.id
-                  ? 'bg-[#EF4135] border-[#EF4135] text-[#F7F7F5]'
-                  : 'bg-[#153A70] border-[#2B4A82] text-[#B7C1DA]') +
-                (locked ? ' opacity-60' : '')
-              }
-            >
-              <TeamLogo team={t} size={22} /> {t.name}
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="flex flex-wrap gap-2">
+            {teams.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => selectDraft(t.id)}
+                disabled={locked}
+                className={
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border ' +
+                  (draftPick === t.id
+                    ? 'bg-[#EF4135] border-[#EF4135] text-[#F7F7F5]'
+                    : 'bg-[#153A70] border-[#2B4A82] text-[#B7C1DA]') +
+                  (locked ? ' opacity-60' : '')
+                }
+              >
+                <TeamLogo team={t} size={16} /> {t.name}
+              </button>
+            ))}
+          </div>
+
+          {!locked && (
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={validatePick}
+                disabled={!dirty}
+                className="condensed text-xs font-semibold px-3 py-1.5 rounded-full bg-[#EF4135] text-[#F7F7F5] disabled:opacity-40"
+              >
+                Valider mon pronostic champion
+              </button>
+              {!dirty && myPick && (
+                <span className="text-xs text-[#3B7DD8]">✓ Pronostic enregistré</span>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {isAdmin && (
