@@ -23,6 +23,7 @@ function fmtDate(iso) {
 
 export default function PronosticsPage() {
   const { user } = useAuth();
+  const isAdmin = user?.email === 'jules.fornage@gmail.com';
   const [champ, setChamp] = useState('elite');
   const [teams, setTeams] = useState([]);
   const [matches, setMatches] = useState([]);
@@ -153,7 +154,7 @@ export default function PronosticsPage() {
         <h2 className="condensed text-2xl font-semibold">
           {CHAMPS.find((c) => c.id === champ).label} — à pronostiquer
         </h2>
-        {user && (
+        {isAdmin && (
           <button
             onClick={() => setShowAdd(true)}
             className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-full bg-[#153A70] text-[#EF4135] border border-[#B72E23]"
@@ -189,7 +190,7 @@ export default function PronosticsPage() {
                         <Lock size={11} /> verrouillé
                       </span>
                     )}
-                    {user && (
+                    {isAdmin && (
                       <button onClick={() => removeMatch(m.id)} className="text-[#7C8AAE]">
                         <X size={14} />
                       </button>
@@ -217,7 +218,7 @@ export default function PronosticsPage() {
                   onChange={(choice) => choosePrediction(m.id, choice)}
                 />
 
-                {locked && user && (
+                {locked && isAdmin && (
                   <div className="mt-3 pt-3 border-t border-[#2B4A82]">
                     <p className="text-xs mb-1.5 text-[#7C8AAE]">Entrer le résultat final :</p>
                     <div className="flex items-center gap-2">
