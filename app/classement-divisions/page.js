@@ -11,38 +11,58 @@ export default function ClassementDivisionsPage() {
 
   useEffect(() => {
     (async () => {
+      const stats = {};
+
       const { data: matches } = await supabase
         .from('matches')
         .select('id, home_score, away_score')
         .eq('champ', champ)
         .not('home_score', 'is', null);
 
-      if (!matches || matches.length === 0) {
-        setBoard([]);
-        return;
+      if (matches && matches.length > 0) {
+        const ids = matches.map((m) => m.id);
+        const { data: preds } = await supabase
+          .from('predictions')
+          .select('match_id, choice, user_id, profiles(display_name)')
+          .in('match_id', ids);
+
+        const byMatch = {};
+        matches.forEach((m) => {
+          byMatch[m.id] = m;
+        });
+
+        (preds || []).forEach((p) => {
+          const m = byMatch[p.match_id];
+          if (!m) return;
+          const winner = m.home_score === m.away_score ? 'draw' : m.home_score > m.away_score ? 'home' : 'away';
+          const pt = p.choice === winner ? 3 : 0;
+          const key = p.user_id;
+          if (!stats[key]) stats[key] = { user: p.profiles?.display_name || 'Joueur', pts: 0, played: 0 };
+          stats[key].pts += pt;
+          stats[key].played += 1;
+        });
       }
-      const ids = matches.map((m) => m.id);
-      const { data: preds } = await supabase
-        .from('predictions')
-        .select('match_id, choice, user_id, profiles(display_name)')
-        .in('match_id', ids);
 
-      const byMatch = {};
-      matches.forEach((m) => {
-        byMatch[m.id] = m;
-      });
+      const { data: champConfig } = await supabase
+        .from('champion_config')
+        .select('winner_team_id')
+        .eq('champ', champ)
+        .maybeSingle();
 
-      const stats = {};
-      (preds || []).forEach((p) => {
-        const m = byMatch[p.match_id];
-        if (!m) return;
-        const winner = m.home_score === m.away_score ? 'draw' : m.home_score > m.away_score ? 'home' : 'away';
-        const pt = p.choice === winner ? 3 : 0;
-        const key = p.user_id;
-        if (!stats[key]) stats[key] = { user: p.profiles?.display_name || 'Joueur', pts: 0, played: 0 };
-        stats[key].pts += pt;
-        stats[key].played += 1;
-      });
+      if (champConfig?.winner_team_id) {
+        const { data: champPreds } = await supabase
+          .from('champion_predictions')
+          .select('team_id, user_id, profiles(display_name)')
+          .eq('champ', champ);
+
+        (champPreds || []).forEach((p) => {
+          if (p.team_id !== champConfig.winner_team_id) return;
+          const key = p.user_id;
+          if (!stats[key]) stats[key] = { user: p.profiles?.display_name || 'Joueur', pts: 0, played: 0 };
+          stats[key].pts += 30;
+        });
+      }
+
       setBoard(Object.values(stats).sort((a, b) => b.pts - a.pts || b.played - a.played));
     })();
   }, [champ]);
