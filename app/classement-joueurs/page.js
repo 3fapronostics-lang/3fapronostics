@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../lib/AuthContext';
 import { Trophy, Medal } from 'lucide-react';
 
 export default function ClassementJoueursPage() {
+  const { user } = useAuth();
   const [board, setBoard] = useState([]);
 
   useEffect(() => {
@@ -13,7 +15,7 @@ export default function ClassementJoueursPage() {
 
       const { data: profiles } = await supabase.from('profiles').select('id, display_name');
       (profiles || []).forEach((p) => {
-        stats[p.id] = { user: p.display_name || 'Joueur', pts: 0, played: 0 };
+        stats[p.id] = { id: p.id, user: p.display_name || 'Joueur', pts: 0, played: 0 };
       });
 
       const { data: matches } = await supabase
@@ -39,7 +41,7 @@ export default function ClassementJoueursPage() {
           const winner = m.home_score === m.away_score ? 'draw' : m.home_score > m.away_score ? 'home' : 'away';
           const pt = p.choice === winner ? 3 : 0;
           const key = p.user_id;
-          if (!stats[key]) stats[key] = { user: p.profiles?.display_name || 'Joueur', pts: 0, played: 0 };
+          if (!stats[key]) stats[key] = { id: key, user: p.profiles?.display_name || 'Joueur', pts: 0, played: 0 };
           stats[key].pts += pt;
           stats[key].played += 1;
         });
@@ -65,7 +67,7 @@ export default function ClassementJoueursPage() {
         (champPreds || []).forEach((p) => {
           if (p.team_id !== winnerByChamp[p.champ]) return;
           const key = p.user_id;
-          if (!stats[key]) stats[key] = { user: p.profiles?.display_name || 'Joueur', pts: 0, played: 0 };
+          if (!stats[key]) stats[key] = { id: key, user: p.profiles?.display_name || 'Joueur', pts: 0, played: 0 };
           stats[key].pts += 30;
         });
       }
@@ -84,27 +86,40 @@ export default function ClassementJoueursPage() {
         </div>
       ) : (
         <div className="rounded-lg overflow-hidden border border-[#2B4A82]">
-          {board.map((row, i) => (
-            <div
-              key={row.user + i}
-              className={'flex items-center gap-3 px-4 py-3 ' + (i % 2 === 0 ? 'bg-[#0F2C5C]' : 'bg-[#153A70]')}
-            >
-              <span className="display text-lg w-7 text-center">
-                {row.pts > 0 && i === 0 ? (
-                  <Medal size={30} className="inline" style={{ color: '#D4AF37' }} />
-                ) : row.pts > 0 && i === 1 ? (
-                  <Medal size={30} className="inline" style={{ color: '#C0C0C0' }} />
-                ) : row.pts > 0 && i === 2 ? (
-                  <Medal size={30} className="inline" style={{ color: '#CD7F32' }} />
-                ) : (
-                  i + 1
-                )}
-              </span>
-              <span className="mono flex-1 truncate">{row.user}</span>
-              <span className="text-xs text-[#7C8AAE]">{row.played} pronos</span>
-              <span className="display text-xl text-[#EF4135]">{row.pts}</span>
-            </div>
-          ))}
+          {board.map((row, i) => {
+            const isMe = user && row.id === user.id;
+            return (
+              <div
+                key={row.id + i}
+                className={
+                  'flex items-center gap-3 px-4 py-3 ' +
+                  (isMe
+                    ? 'bg-[#EF4135]/20 border-l-4 border-[#EF4135]'
+                    : i % 2 === 0
+                    ? 'bg-[#0F2C5C]'
+                    : 'bg-[#153A70]')
+                }
+              >
+                <span className="display text-lg w-7 text-center">
+                  {row.pts > 0 && i === 0 ? (
+                    <Medal size={26} className="inline" style={{ color: '#D4AF37' }} />
+                  ) : row.pts > 0 && i === 1 ? (
+                    <Medal size={26} className="inline" style={{ color: '#C0C0C0' }} />
+                  ) : row.pts > 0 && i === 2 ? (
+                    <Medal size={26} className="inline" style={{ color: '#CD7F32' }} />
+                  ) : (
+                    i + 1
+                  )}
+                </span>
+                <span className="mono flex-1 truncate">
+                  {row.user}
+                  {isMe && <span className="text-[#EF4135]"> (Toi)</span>}
+                </span>
+                <span className="text-xs text-[#7C8AAE]">{row.played} pronos</span>
+                <span className="display text-xl text-[#EF4135]">{row.pts}</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
