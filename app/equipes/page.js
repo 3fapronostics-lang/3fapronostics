@@ -21,7 +21,7 @@ export default function EquipesPage() {
   const isAdmin = user?.email === 'jules.fornage@gmail.com';
   const [champ, setChamp] = useState('elite');
   const [teams, setTeams] = useState([]);
-  const [draft, setDraft] = useState({ conference: 'nord', name: '', logo_url: '' });
+  const [draft, setDraft] = useState({ conference: 'nord', poule: '', name: '', logo_url: '' });
   const [notice, setNotice] = useState('');
 
   const load = async () => {
@@ -44,7 +44,8 @@ export default function EquipesPage() {
     const { error } = await supabase.from('teams').upsert(
       {
         champ,
-        conference: champ === 'elite' ? draft.conference : null,
+        conference: draft.conference || null,
+        poule: draft.poule.trim() || null,
         name: draft.name.trim(),
         logo_url: draft.logo_url || null,
       },
@@ -54,7 +55,7 @@ export default function EquipesPage() {
       flash("Impossible d'ajouter cette équipe.");
       return;
     }
-    setDraft((d) => ({ ...d, name: '', logo_url: '' }));
+    setDraft((d) => ({ ...d, name: '', logo_url: '', poule: '' }));
     load();
   };
 
@@ -96,18 +97,26 @@ export default function EquipesPage() {
             ))}
           </select>
         </div>
-        {champ === 'elite' && (
+        <div>
+          <label className="text-xs text-[#7C8AAE]">Conférence</label>
+          <select
+            value={draft.conference}
+            onChange={(e) => setDraft((d) => ({ ...d, conference: e.target.value }))}
+            className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
+          >
+            {CONFERENCES.map((c) => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+        {(champ === 'd1' || champ === 'd2') && (
           <div>
-            <label className="text-xs text-[#7C8AAE]">Conférence</label>
-            <select
-              value={draft.conference}
-              onChange={(e) => setDraft((d) => ({ ...d, conference: e.target.value }))}
+            <label className="text-xs text-[#7C8AAE]">Poule (ex : Nord-Ouest, BRE, GRE...)</label>
+            <input
+              value={draft.poule}
+              onChange={(e) => setDraft((d) => ({ ...d, poule: e.target.value }))}
               className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
-            >
-              {CONFERENCES.map((c) => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
+            />
           </div>
         )}
         <div>
@@ -156,7 +165,10 @@ export default function EquipesPage() {
         {teams.map((t) => (
           <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-[#153A70]">
             <TeamLogo team={t} size={20} />
-            <span className="flex-1 text-sm mono truncate">{t.name}</span>
+            <span className="flex-1 text-sm mono truncate">
+              {t.name}
+              {t.poule && <span className="text-[#7C8AAE]"> · {t.poule}</span>}
+            </span>
             <button onClick={() => removeTeam(t.id)} className="text-[#7C8AAE]">
               <X size={13} />
             </button>
