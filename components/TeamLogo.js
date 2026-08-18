@@ -1,4 +1,4 @@
-export default function TeamLogo({ team, size = 22 }) {
+export default function TeamLogo({ team, size = 32 }) {
   if (team?.logo_url) {
     return (
       <img
