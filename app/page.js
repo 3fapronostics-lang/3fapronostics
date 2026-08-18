@@ -108,7 +108,7 @@ export default function PronosticsPage() {
       home_team_id: newMatch.home_team_id,
       away_team_id: newMatch.away_team_id,
       journee: newMatch.journee ? parseInt(newMatch.journee, 10) : null,
-      kickoff_at: newMatch.kickoff_at,
+          kickoff_at: new Date(newMatch.kickoff_at).toISOString(),
     });
     if (error) {
       flash("Impossible d'ajouter ce match.");
