@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../lib/AuthContext';
 import TeamLogo from '../../components/TeamLogo';
-import { X } from 'lucide-react';
+import { X, Pencil } from 'lucide-react';
 
 const CHAMPS = [
   { id: 'elite', label: 'Ligue Élite' },
@@ -16,12 +16,14 @@ const CONFERENCES = [
   { id: 'sud', label: 'Conférence Sud' },
 ];
 
+const EMPTY_DRAFT = { conference: 'nord', poule: '', name: '', logo_url: '', pen: 0, forfeit: 0 };
+
 export default function EquipesPage() {
   const { user, loading } = useAuth();
   const isAdmin = user?.email === 'jules.fornage@gmail.com';
   const [champ, setChamp] = useState('elite');
   const [teams, setTeams] = useState([]);
-  const [draft, setDraft] = useState({ conference: 'nord', poule: '', name: '', logo_url: '' });
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [notice, setNotice] = useState('');
 
   const load = async () => {
@@ -31,6 +33,7 @@ export default function EquipesPage() {
 
   useEffect(() => {
     load();
+    setDraft(EMPTY_DRAFT);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [champ]);
 
@@ -48,6 +51,8 @@ export default function EquipesPage() {
         poule: draft.poule.trim() || null,
         name: draft.name.trim(),
         logo_url: draft.logo_url || null,
+        pen: Number(draft.pen) || 0,
+        forfeit: Number(draft.forfeit) || 0,
       },
       { onConflict: 'champ,name' }
     );
@@ -55,8 +60,21 @@ export default function EquipesPage() {
       flash("Impossible d'ajouter cette équipe.");
       return;
     }
-    setDraft((d) => ({ ...d, name: '', logo_url: '', poule: '' }));
+    flash('Équipe enregistrée.');
+    setDraft(EMPTY_DRAFT);
     load();
+  };
+
+  const editTeam = (t) => {
+    setDraft({
+      conference: t.conference || 'nord',
+      poule: t.poule || '',
+      name: t.name,
+      logo_url: t.logo_url || '',
+      pen: t.pen || 0,
+      forfeit: t.forfeit || 0,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const removeTeam = async (id) => {
@@ -127,6 +145,26 @@ export default function EquipesPage() {
             className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
           />
         </div>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="text-xs text-[#7C8AAE]">Pénalité (points)</label>
+            <input
+              type="number"
+              value={draft.pen}
+              onChange={(e) => setDraft((d) => ({ ...d, pen: e.target.value }))}
+              className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs text-[#7C8AAE]">Forfaits</label>
+            <input
+              type="number"
+              value={draft.forfeit}
+              onChange={(e) => setDraft((d) => ({ ...d, forfeit: e.target.value }))}
+              className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
+            />
+          </div>
+        </div>
         <div>
           <label className="text-xs text-[#7C8AAE]">Lien du logo (URL, optionnel)</label>
           <input
@@ -151,12 +189,22 @@ export default function EquipesPage() {
             <span className="text-xs text-[#7C8AAE]">Aperçu du logo</span>
           </div>
         )}
-        <button
-          onClick={addTeam}
-          className="w-full condensed font-semibold text-sm py-2 rounded-full bg-[#3B7DD8]"
-        >
-          Ajouter / mettre à jour l&apos;équipe
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={addTeam}
+            className="flex-1 condensed font-semibold text-sm py-2 rounded-full bg-[#3B7DD8]"
+          >
+            Ajouter / mettre à jour l&apos;équipe
+          </button>
+          {draft.name && (
+            <button
+              onClick={() => setDraft(EMPTY_DRAFT)}
+              className="px-4 condensed font-semibold text-sm py-2 rounded-full border border-[#2B4A82] text-[#B7C1DA]"
+            >
+              Annuler
+            </button>
+          )}
+        </div>
       </div>
       <p className="text-xs mb-2 text-[#7C8AAE]">
         {CHAMPS.find((c) => c.id === champ).label} · {teams.length} équipe{teams.length > 1 ? 's' : ''}
@@ -168,7 +216,13 @@ export default function EquipesPage() {
             <span className="flex-1 text-sm mono truncate">
               {t.name}
               {t.poule && <span className="text-[#7C8AAE]"> · {t.poule}</span>}
+              {(t.pen > 0 || t.forfeit > 0) && (
+                <span className="text-[#EF4135]"> · PEN {t.pen || 0} / F {t.forfeit || 0}</span>
+              )}
             </span>
+            <button onClick={() => editTeam(t)} className="text-[#7C8AAE]">
+              <Pencil size={13} />
+            </button>
             <button onClick={() => removeTeam(t.id)} className="text-[#7C8AAE]">
               <X size={13} />
             </button>
