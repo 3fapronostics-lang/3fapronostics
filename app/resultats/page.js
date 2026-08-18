@@ -105,13 +105,13 @@ export default function ResultatsPage() {
                 {fmtDate(m.kickoff_at)}
               </span>
               <div className="flex items-center gap-2 overflow-hidden flex-1">
-                <TeamLogo team={m.home} size={26} />
+                <TeamLogo team={m.home} size={60} />
                 <span className="condensed truncate">{m.home?.name}</span>
                 <span className="display text-lg shrink-0 text-[#EF4135]">
                   {m.home_score} – {m.away_score}
                 </span>
                 <span className="condensed truncate">{m.away?.name}</span>
-                <TeamLogo team={m.away} size={26} />
+                <TeamLogo team={m.away} size={60} />
               </div>
               {isAdmin && (
                 <button onClick={() => removeMatch(m.id)} className="text-[#7C8AAE] shrink-0">
