@@ -15,6 +15,21 @@ function dash(v) {
   return v && v > 0 ? v : '–';
 }
 
+function Pill({ active, onClick, disabled, children }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={
+        'condensed text-sm font-medium px-3 py-1.5 rounded-full border whitespace-nowrap disabled:opacity-30 ' +
+        (active ? 'bg-[#3B7DD8] text-[#0A1F44] border-[#3B7DD8]' : 'text-[#B7C1DA] border-[#2B4A82]')
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
 function StandingsTable({ rows, teamsById }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-[#2B4A82]">
@@ -75,6 +90,8 @@ export default function ClassementEquipesPage() {
   const [standings, setStandings] = useState([]);
   const [teamsById, setTeamsById] = useState({});
   const [teams, setTeams] = useState([]);
+  const [selConf, setSelConf] = useState('nord');
+  const [selPoule, setSelPoule] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -126,6 +143,13 @@ export default function ClassementEquipesPage() {
 
       rows.sort((x, y) => y.coef - x.coef || (y.pf - y.pa) - (x.pf - x.pa));
       setStandings(rows);
+
+      const poulesNord = Array.from(new Set((teamsData || []).filter((t) => t.conference === 'nord' && t.poule).map((t) => t.poule)));
+      const poulesSud = Array.from(new Set((teamsData || []).filter((t) => t.conference === 'sud' && t.poule).map((t) => t.poule)));
+      const firstConf = poulesNord.length > 0 ? 'nord' : 'sud';
+      setSelConf(firstConf);
+      const firstPoules = firstConf === 'nord' ? poulesNord : poulesSud;
+      setSelPoule(firstPoules[0] || '');
     })();
   }, [champ]);
 
@@ -157,24 +181,29 @@ export default function ClassementEquipesPage() {
           <p className="condensed text-lg text-[#B7C1DA]">Aucune équipe dans cette division.</p>
         </div>
       ) : hasPoules ? (
-        <div className="space-y-8">
-          {CONFERENCES.map((conf) => {
-            const poules = poulesInConf(conf.id);
-            if (poules.length === 0 && withConf(conf.id).length === 0) return null;
-            return (
-              <div key={conf.id}>
-                <p className="condensed text-base tracking-[0.15em] mb-3 text-[#EF4135]">{conf.label.toUpperCase()}</p>
-                <div className="space-y-5 pl-1">
-                  {poules.map((poule) => (
-                    <div key={poule}>
-                      <p className="condensed text-sm tracking-[0.15em] mb-2 text-[#3B7DD8]">POULE {poule.toUpperCase()}</p>
-                      <StandingsTable rows={withPoule(conf.id, poule)} teamsById={teamsById} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+        <div>
+          <div className="flex gap-1 mb-3 overflow-x-auto">
+            {CONFERENCES.filter((c) => poulesInConf(c.id).length > 0).map((c) => (
+              <Pill
+                key={c.id}
+                active={selConf === c.id}
+                onClick={() => {
+                  setSelConf(c.id);
+                  setSelPoule(poulesInConf(c.id)[0] || '');
+                }}
+              >
+                {c.label}
+              </Pill>
+            ))}
+          </div>
+          <div className="flex gap-1 mb-6 overflow-x-auto">
+            {poulesInConf(selConf).map((p) => (
+              <Pill key={p} active={selPoule === p} onClick={() => setSelPoule(p)}>
+                {p}
+              </Pill>
+            ))}
+          </div>
+          {selPoule && <StandingsTable rows={withPoule(selConf, selPoule)} teamsById={teamsById} />}
         </div>
       ) : champ === 'elite' ? (
         <div className="space-y-6">
