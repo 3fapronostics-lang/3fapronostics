@@ -116,7 +116,7 @@ export default function ChampionPick({ champ, teams, user, isAdmin, label }) {
                 (locked ? ' opacity-60' : '')
               }
             >
-              <TeamLogo team={t} size={16} /> {t.name}
+              <TeamLogo team={t} size={22} /> {t.name}
             </button>
           ))}
         </div>
