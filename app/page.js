@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../lib/AuthContext';
-import ChampTabs, { CHAMPS } from '../components/ChampTabs';
+import { CHAMPS } from '../components/ChampTabs';
 import ChampionPick from '../components/ChampionPick';
 import TeamLogo from '../components/TeamLogo';
 import WinnerPicker from '../components/WinnerPicker';
@@ -25,14 +25,13 @@ function fmtDate(iso) {
 export default function PronosticsPage() {
   const { user } = useAuth();
   const isAdmin = user?.email === 'jules.fornage@gmail.com';
-  const [champ, setChamp] = useState('elite');
-  const [teams, setTeams] = useState([]);
-  const [matches, setMatches] = useState([]);
+  const [teamsByChamp, setTeamsByChamp] = useState({ elite: [], d1: [], d2: [] });
+  const [matchesByChamp, setMatchesByChamp] = useState({ elite: [], d1: [], d2: [] });
   const [myPredictions, setMyPredictions] = useState({});
   const [draftPredictions, setDraftPredictions] = useState({});
   const [resultDrafts, setResultDrafts] = useState({});
   const [showAdd, setShowAdd] = useState(false);
-  const [newMatch, setNewMatch] = useState({ home_team_id: '', away_team_id: '', journee: '', kickoff_at: '' });
+  const [newMatch, setNewMatch] = useState({ champ: 'elite', home_team_id: '', away_team_id: '', journee: '', kickoff_at: '' });
   const [notice, setNotice] = useState('');
 
   const flash = (msg) => {
@@ -41,19 +40,26 @@ export default function PronosticsPage() {
   };
 
   const load = async () => {
-    const { data: teamsData } = await supabase.from('teams').select('*').eq('champ', champ).order('name');
-    setTeams(teamsData || []);
+    const { data: allTeams } = await supabase.from('teams').select('*').order('name');
+    const tByChamp = { elite: [], d1: [], d2: [] };
+    (allTeams || []).forEach((t) => {
+      if (tByChamp[t.champ]) tByChamp[t.champ].push(t);
+    });
+    setTeamsByChamp(tByChamp);
 
-    const { data: matchesData } = await supabase
+    const { data: allMatches } = await supabase
       .from('matches')
       .select('*, home:home_team_id(*), away:away_team_id(*)')
-      .eq('champ', champ)
       .is('home_score', null)
       .order('kickoff_at', { ascending: true });
-    setMatches(matchesData || []);
+    const mByChamp = { elite: [], d1: [], d2: [] };
+    (allMatches || []).forEach((m) => {
+      if (mByChamp[m.champ]) mByChamp[m.champ].push(m);
+    });
+    setMatchesByChamp(mByChamp);
 
-    if (user && matchesData && matchesData.length) {
-      const ids = matchesData.map((m) => m.id);
+    if (user && allMatches && allMatches.length) {
+      const ids = allMatches.map((m) => m.id);
       const { data: preds } = await supabase
         .from('predictions')
         .select('match_id, choice')
@@ -74,7 +80,7 @@ export default function PronosticsPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [champ, user]);
+  }, [user]);
 
   const choosePrediction = (matchId, choice) => {
     if (!user) return;
@@ -104,17 +110,17 @@ export default function PronosticsPage() {
       return;
     }
     const { error } = await supabase.from('matches').insert({
-      champ,
+      champ: newMatch.champ,
       home_team_id: newMatch.home_team_id,
       away_team_id: newMatch.away_team_id,
       journee: newMatch.journee ? parseInt(newMatch.journee, 10) : null,
-          kickoff_at: new Date(newMatch.kickoff_at).toISOString(),
+      kickoff_at: new Date(newMatch.kickoff_at).toISOString(),
     });
     if (error) {
       flash("Impossible d'ajouter ce match.");
       return;
     }
-    setNewMatch({ home_team_id: '', away_team_id: '', journee: '', kickoff_at: '' });
+    setNewMatch({ champ: newMatch.champ, home_team_id: '', away_team_id: '', journee: '', kickoff_at: '' });
     setShowAdd(false);
     load();
   };
@@ -162,136 +168,130 @@ export default function PronosticsPage() {
         <div className="mb-4 px-3 py-2 rounded text-sm bg-[#EF4135]/20 border border-[#EF4135]">{notice}</div>
       )}
 
-      <ChampTabs value={champ} onChange={setChamp} />
-
-      <ChampionPick
-        champ={champ}
-        teams={teams}
-        user={user}
-        isAdmin={isAdmin}
-        label={CHAMPS.find((c) => c.id === champ)?.label}
-      />
-
-      <div className="flex items-center justify-between mb-4 gap-2">
-        <h2 className="condensed text-2xl font-semibold">
-          {CHAMPS.find((c) => c.id === champ).label} — à pronostiquer
-        </h2>
-        {isAdmin && (
-          <button
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-full bg-[#153A70] text-[#EF4135] border border-[#B72E23]"
-          >
-            <Plus size={15} /> Match
-          </button>
-        )}
-      </div>
-
-      {matches.length === 0 ? (
-        <div className="text-center py-14 rounded-lg border border-dashed border-[#2B4A82]">
-          <ShieldCheck size={28} className="mx-auto mb-3 text-[#7C8AAE]" />
-          <p className="condensed text-lg text-[#B7C1DA]">Aucun match à pronostiquer ici.</p>
-          <p className="text-sm mt-1 text-[#7C8AAE]">
-            Ajoute le prochain match de {CHAMPS.find((c) => c.id === champ).label}.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {matches.map((m) => {
-            const locked = isLocked(m);
-            const mine = draftPredictions[m.id] || null;
-            const savedMine = myPredictions[m.id] || null;
-            const dirty = mine && mine !== savedMine;
-            return (
-              <div key={m.id} className="relative rounded-lg px-5 py-4 bg-[#0F2C5C] border border-dashed border-[#2B4A82]">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="mono text-xs text-[#7C8AAE]">
-                    {m.journee ? 'J' + m.journee + ' · ' : ''}
-                    {fmtDate(m.kickoff_at)}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {locked && (
-                      <span className="flex items-center gap-1 text-xs mono text-[#B7C1DA]">
-                        <Lock size={11} /> verrouillé
-                      </span>
-                    )}
-                    {isAdmin && (
-                      <button onClick={() => removeMatch(m.id)} className="text-[#7C8AAE]">
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-2">
-                    <TeamLogo team={m.home} />
-                    <span className="condensed text-lg">{m.home?.name}</span>
-                  </div>
-                  <span className="mono text-xs text-[#7C8AAE]">VS</span>
-                  <div className="flex items-center gap-2">
-                    <span className="condensed text-lg">{m.away?.name}</span>
-                    <TeamLogo team={m.away} />
-                  </div>
-                </div>
-
-                <WinnerPicker
-                  home={m.home}
-                  away={m.away}
-                  value={mine}
-                  disabled={!user || locked}
-                  onChange={(choice) => choosePrediction(m.id, choice)}
-                />
-
-                {user && !locked && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <button
-                      onClick={() => validatePrediction(m.id)}
-                      disabled={!dirty}
-                      className="condensed text-xs font-semibold px-3 py-1.5 rounded-full bg-[#EF4135] text-[#F7F7F5] disabled:opacity-40"
-                    >
-                      Valider mon pronostic
-                    </button>
-                    {!dirty && savedMine && (
-                      <span className="text-xs text-[#3B7DD8]">✓ Pronostic enregistré</span>
-                    )}
-                  </div>
-                )}
-
-                {locked && isAdmin && (
-                  <div className="mt-3 pt-3 border-t border-[#2B4A82]">
-                    <p className="text-xs mb-1.5 text-[#7C8AAE]">Entrer le résultat final :</p>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="–"
-                        value={(resultDrafts[m.id] || {}).home ?? ''}
-                        onChange={(e) => setResultDraft(m.id, 'home', e.target.value)}
-                        className="display text-xl w-14 text-center rounded-md bg-[#153A70] border-2 border-[#2B4A82] py-1 outline-none"
-                      />
-                      <span className="display text-lg text-[#7C8AAE]">–</span>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="–"
-                        value={(resultDrafts[m.id] || {}).away ?? ''}
-                        onChange={(e) => setResultDraft(m.id, 'away', e.target.value)}
-                        className="display text-xl w-14 text-center rounded-md bg-[#153A70] border-2 border-[#2B4A82] py-1 outline-none"
-                      />
-                      <button
-                        onClick={() => confirmResult(m.id)}
-                        className="ml-auto text-xs condensed font-semibold px-3 py-1.5 rounded-full bg-[#153A70] text-[#EF4135] border border-[#B72E23]"
-                      >
-                        Confirmer
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+      {isAdmin && (
+        <button
+          onClick={() => setShowAdd(true)}
+          className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-full bg-[#153A70] text-[#EF4135] border border-[#B72E23] mb-6"
+        >
+          <Plus size={15} /> Ajouter un match
+        </button>
       )}
+
+      {CHAMPS.map((c) => {
+        const matches = matchesByChamp[c.id] || [];
+        const teams = teamsByChamp[c.id] || [];
+        return (
+          <div key={c.id} className="mb-10">
+            <h2 className="condensed text-2xl font-semibold mb-3">{c.label}</h2>
+
+            <ChampionPick champ={c.id} teams={teams} user={user} isAdmin={isAdmin} label={c.label} />
+
+            {matches.length === 0 ? (
+              <div className="text-center py-10 rounded-lg border border-dashed border-[#2B4A82]">
+                <ShieldCheck size={24} className="mx-auto mb-2 text-[#7C8AAE]" />
+                <p className="condensed text-base text-[#B7C1DA]">Aucun match à pronostiquer ici.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {matches.map((m) => {
+                  const locked = isLocked(m);
+                  const mine = draftPredictions[m.id] || null;
+                  const savedMine = myPredictions[m.id] || null;
+                  const dirty = mine && mine !== savedMine;
+                  return (
+                    <div key={m.id} className="relative rounded-lg px-5 py-4 bg-[#0F2C5C] border border-dashed border-[#2B4A82]">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="mono text-xs text-[#7C8AAE]">
+                          {m.journee ? 'J' + m.journee + ' · ' : ''}
+                          {fmtDate(m.kickoff_at)}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {locked && (
+                            <span className="flex items-center gap-1 text-xs mono text-[#B7C1DA]">
+                              <Lock size={11} /> verrouillé
+                            </span>
+                          )}
+                          {isAdmin && (
+                            <button onClick={() => removeMatch(m.id)} className="text-[#7C8AAE]">
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          <TeamLogo team={m.home} />
+                          <span className="condensed text-lg">{m.home?.name}</span>
+                        </div>
+                        <span className="mono text-xs text-[#7C8AAE]">VS</span>
+                        <div className="flex items-center gap-2">
+                          <span className="condensed text-lg">{m.away?.name}</span>
+                          <TeamLogo team={m.away} />
+                        </div>
+                      </div>
+
+                      <WinnerPicker
+                        home={m.home}
+                        away={m.away}
+                        value={mine}
+                        disabled={!user || locked}
+                        onChange={(choice) => choosePrediction(m.id, choice)}
+                      />
+
+                      {user && !locked && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <button
+                            onClick={() => validatePrediction(m.id)}
+                            disabled={!dirty}
+                            className="condensed text-xs font-semibold px-3 py-1.5 rounded-full bg-[#EF4135] text-[#F7F7F5] disabled:opacity-40"
+                          >
+                            Valider mon pronostic
+                          </button>
+                          {!dirty && savedMine && (
+                            <span className="text-xs text-[#3B7DD8]">✓ Pronostic enregistré</span>
+                          )}
+                        </div>
+                      )}
+
+                      {locked && isAdmin && (
+                        <div className="mt-3 pt-3 border-t border-[#2B4A82]">
+                          <p className="text-xs mb-1.5 text-[#7C8AAE]">Entrer le résultat final :</p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="–"
+                              value={(resultDrafts[m.id] || {}).home ?? ''}
+                              onChange={(e) => setResultDraft(m.id, 'home', e.target.value)}
+                              className="display text-xl w-14 text-center rounded-md bg-[#153A70] border-2 border-[#2B4A82] py-1 outline-none"
+                            />
+                            <span className="display text-lg text-[#7C8AAE]">–</span>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="–"
+                              value={(resultDrafts[m.id] || {}).away ?? ''}
+                              onChange={(e) => setResultDraft(m.id, 'away', e.target.value)}
+                              className="display text-xl w-14 text-center rounded-md bg-[#153A70] border-2 border-[#2B4A82] py-1 outline-none"
+                            />
+                            <button
+                              onClick={() => confirmResult(m.id)}
+                              className="ml-auto text-xs condensed font-semibold px-3 py-1.5 rounded-full bg-[#153A70] text-[#EF4135] border border-[#B72E23]"
+                            >
+                              Confirmer
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {showAdd && (
         <div className="fixed inset-0 z-30 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70">
@@ -304,6 +304,18 @@ export default function PronosticsPage() {
             </div>
             <div className="space-y-3">
               <div>
+                <label className="text-xs text-[#7C8AAE]">Championnat</label>
+                <select
+                  value={newMatch.champ}
+                  onChange={(e) => setNewMatch((n) => ({ ...n, champ: e.target.value, home_team_id: '', away_team_id: '' }))}
+                  className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
+                >
+                  {CHAMPS.map((c) => (
+                    <option key={c.id} value={c.id}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="text-xs text-[#7C8AAE]">Équipe à domicile</label>
                 <select
                   value={newMatch.home_team_id}
@@ -311,7 +323,7 @@ export default function PronosticsPage() {
                   className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
                 >
                   <option value="">—</option>
-                  {teams.map((t) => (
+                  {(teamsByChamp[newMatch.champ] || []).map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
@@ -324,12 +336,12 @@ export default function PronosticsPage() {
                   className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
                 >
                   <option value="">—</option>
-                  {teams.map((t) => (
+                  {(teamsByChamp[newMatch.champ] || []).map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
               </div>
-              {teams.length === 0 && (
+              {(teamsByChamp[newMatch.champ] || []).length === 0 && (
                 <p className="text-xs text-[#7C8AAE]">
                   Aucune équipe dans cette division —{' '}
                   <a href="/equipes" className="underline text-[#3B7DD8]">ajoutes-en d&apos;abord</a>.
