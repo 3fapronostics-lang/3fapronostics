@@ -43,7 +43,7 @@ function StandingsTable({ rows, teamsById }) {
               }
             >
               <span className="condensed flex items-center gap-2 truncate text-sm">
-                <TeamLogo team={t} size={26} />
+                <TeamLogo team={t} size={60} />
                 {t?.name}
               </span>
               <span className="display text-sm text-center text-[#EF4135]">{row.coef.toFixed(2)}</span>
