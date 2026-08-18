@@ -212,7 +212,7 @@ export default function EquipesPage() {
       <div className="space-y-1">
         {teams.map((t) => (
           <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-[#153A70]">
-            <TeamLogo team={t} size={20} />
+            <TeamLogo team={t} size={28} />
             <span className="flex-1 text-sm mono truncate">
               {t.name}
               {t.poule && <span className="text-[#7C8AAE]"> · {t.poule}</span>}
