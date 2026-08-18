@@ -350,13 +350,16 @@ export default function PronosticsPage() {
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="text-xs text-[#7C8AAE]">Journée</label>
-                  <input
-                    type="number"
-                    min="1"
+                  <select
                     value={newMatch.journee}
                     onChange={(e) => setNewMatch((n) => ({ ...n, journee: e.target.value }))}
                     className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
-                  />
+                  >
+                    <option value="">—</option>
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((j) => (
+                      <option key={j} value={j}>J{j}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex-[2]">
                   <label className="text-xs text-[#7C8AAE]">Date</label>
