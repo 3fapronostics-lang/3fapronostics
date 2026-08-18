@@ -11,6 +11,11 @@ export default function ClassementJoueursPage() {
     (async () => {
       const stats = {};
 
+      const { data: profiles } = await supabase.from('profiles').select('id, display_name');
+      (profiles || []).forEach((p) => {
+        stats[p.id] = { user: p.display_name || 'Joueur', pts: 0, played: 0 };
+      });
+
       const { data: matches } = await supabase
         .from('matches')
         .select('id, home_score, away_score')
@@ -75,8 +80,7 @@ export default function ClassementJoueursPage() {
       {board.length === 0 ? (
         <div className="text-center py-14 rounded-lg border border-dashed border-[#2B4A82]">
           <Trophy size={28} className="mx-auto mb-3 text-[#7C8AAE]" />
-          <p className="condensed text-lg text-[#B7C1DA]">Le tableau est encore vide.</p>
-          <p className="text-sm mt-1 text-[#7C8AAE]">Les points apparaissent dès qu&apos;un résultat est confirmé.</p>
+          <p className="condensed text-lg text-[#B7C1DA]">Aucun joueur inscrit pour l&apos;instant.</p>
         </div>
       ) : (
         <div className="rounded-lg overflow-hidden border border-[#2B4A82]">
@@ -86,7 +90,7 @@ export default function ClassementJoueursPage() {
               className={'flex items-center gap-3 px-4 py-3 ' + (i % 2 === 0 ? 'bg-[#0F2C5C]' : 'bg-[#153A70]')}
             >
               <span className="display text-lg w-7 text-center">
-                {i === 0 ? <Medal size={18} className="text-[#EF4135] inline" /> : i + 1}
+                {i === 0 && row.pts > 0 ? <Medal size={18} className="text-[#EF4135] inline" /> : i + 1}
               </span>
               <span className="mono flex-1 truncate">{row.user}</span>
               <span className="text-xs text-[#7C8AAE]">{row.played} pronos</span>
