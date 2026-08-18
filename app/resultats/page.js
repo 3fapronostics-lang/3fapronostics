@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../lib/AuthContext';
 import ChampTabs, { CHAMPS } from '../../components/ChampTabs';
 import TeamLogo from '../../components/TeamLogo';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, X } from 'lucide-react';
 
 function fmtDate(iso) {
   try {
@@ -20,33 +21,43 @@ function fmtDate(iso) {
 }
 
 export default function ResultatsPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.email === 'jules.fornage@gmail.com';
   const [champ, setChamp] = useState('elite');
   const [groups, setGroups] = useState([]);
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from('matches')
-        .select('*, home:home_team_id(*), away:away_team_id(*)')
-        .eq('champ', champ)
-        .not('home_score', 'is', null)
-        .order('kickoff_at', { ascending: false });
+  const load = async () => {
+    const { data } = await supabase
+      .from('matches')
+      .select('*, home:home_team_id(*), away:away_team_id(*)')
+      .eq('champ', champ)
+      .not('home_score', 'is', null)
+      .order('kickoff_at', { ascending: false });
 
-      const byJournee = {};
-      (data || []).forEach((m) => {
-        const j = m.journee || '?';
-        if (!byJournee[j]) byJournee[j] = [];
-        byJournee[j].push(m);
-      });
-      const entries = Object.entries(byJournee).sort((a, b) => {
-        const an = parseInt(a[0], 10);
-        const bn = parseInt(b[0], 10);
-        if (isNaN(an) || isNaN(bn)) return 0;
-        return bn - an;
-      });
-      setGroups(entries);
-    })();
+    const byJournee = {};
+    (data || []).forEach((m) => {
+      const j = m.journee || '?';
+      if (!byJournee[j]) byJournee[j] = [];
+      byJournee[j].push(m);
+    });
+    const entries = Object.entries(byJournee).sort((a, b) => {
+      const an = parseInt(a[0], 10);
+      const bn = parseInt(b[0], 10);
+      if (isNaN(an) || isNaN(bn)) return 0;
+      return bn - an;
+    });
+    setGroups(entries);
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [champ]);
+
+  const removeMatch = async (id) => {
+    await supabase.from('matches').delete().eq('id', id);
+    load();
+  };
 
   return (
     <div>
@@ -73,7 +84,7 @@ export default function ResultatsPage() {
                     className="flex items-center justify-between px-4 py-3 rounded-lg gap-2 bg-[#0F2C5C] border border-[#2B4A82]"
                   >
                     <span className="condensed text-sm shrink-0 text-[#B7C1DA]">{fmtDate(m.kickoff_at)}</span>
-                    <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="flex items-center gap-2 overflow-hidden flex-1">
                       <TeamLogo team={m.home} size={18} />
                       <span className="condensed truncate">{m.home?.name}</span>
                       <span className="display text-lg shrink-0 text-[#EF4135]">
@@ -82,6 +93,11 @@ export default function ResultatsPage() {
                       <span className="condensed truncate">{m.away?.name}</span>
                       <TeamLogo team={m.away} size={18} />
                     </div>
+                    {isAdmin && (
+                      <button onClick={() => removeMatch(m.id)} className="text-[#7C8AAE] shrink-0">
+                        <X size={14} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
