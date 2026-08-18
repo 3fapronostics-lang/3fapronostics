@@ -18,6 +18,7 @@ const CONFERENCES = [
 
 export default function EquipesPage() {
   const { user, loading } = useAuth();
+  const isAdmin = user?.email === 'jules.fornage@gmail.com';
   const [champ, setChamp] = useState('elite');
   const [teams, setTeams] = useState([]);
   const [draft, setDraft] = useState({ conference: 'nord', name: '', logo_url: '' });
@@ -72,8 +73,8 @@ export default function EquipesPage() {
 
   if (loading) return null;
 
-  if (!user) {
-    return <p className="text-sm text-[#B7C1DA]">Connecte-toi pour gérer les équipes.</p>;
+  if (!isAdmin) {
+    return <p className="text-sm text-[#B7C1DA]">Accès réservé à l&apos;administrateur.</p>;
   }
 
   return (
