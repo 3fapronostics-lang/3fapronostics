@@ -90,7 +90,15 @@ export default function ClassementJoueursPage() {
               className={'flex items-center gap-3 px-4 py-3 ' + (i % 2 === 0 ? 'bg-[#0F2C5C]' : 'bg-[#153A70]')}
             >
               <span className="display text-lg w-7 text-center">
-                {i === 0 && row.pts > 0 ? <Medal size={18} className="text-[#EF4135] inline" /> : i + 1}
+                {row.pts > 0 && i === 0 ? (
+                  <Medal size={18} className="inline" style={{ color: '#D4AF37' }} />
+                ) : row.pts > 0 && i === 1 ? (
+                  <Medal size={18} className="inline" style={{ color: '#C0C0C0' }} />
+                ) : row.pts > 0 && i === 2 ? (
+                  <Medal size={18} className="inline" style={{ color: '#CD7F32' }} />
+                ) : (
+                  i + 1
+                )}
               </span>
               <span className="mono flex-1 truncate">{row.user}</span>
               <span className="text-xs text-[#7C8AAE]">{row.played} pronos</span>
