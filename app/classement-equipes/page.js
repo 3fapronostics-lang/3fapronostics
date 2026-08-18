@@ -47,15 +47,17 @@ export default function ClassementEquipesPage() {
   const [champ, setChamp] = useState('elite');
   const [standings, setStandings] = useState([]);
   const [teamsById, setTeamsById] = useState({});
+  const [teams, setTeams] = useState([]);
 
   useEffect(() => {
     (async () => {
-      const { data: teams } = await supabase.from('teams').select('*').eq('champ', champ);
+      const { data: teamsData } = await supabase.from('teams').select('*').eq('champ', champ);
       const tMap = {};
-      (teams || []).forEach((t) => {
+      (teamsData || []).forEach((t) => {
         tMap[t.id] = t;
       });
       setTeamsById(tMap);
+      setTeams(teamsData || []);
 
       const { data: matches } = await supabase
         .from('matches')
@@ -83,12 +85,29 @@ export default function ClassementEquipesPage() {
           h.t += 1; a.t += 1; h.pts += 1; a.pts += 1;
         }
       });
-      setStandings(Object.values(table).sort((x, y) => y.pts - x.pts || y.pf - y.pa - (x.pf - x.pa)));
+
+      // Ensure every team appears even with 0 played matches
+      (teamsData || []).forEach((t) => ensure(t.id));
+
+      setStandings(Object.values(table).sort((x, y) => y.pts - x.pts || (y.pf - y.pa) - (x.pf - x.pa)));
     })();
   }, [champ]);
 
   const withConf = (confId) => standings.filter((row) => teamsById[row.teamId]?.conference === confId);
   const withoutConf = standings.filter((row) => !teamsById[row.teamId]?.conference);
+
+  const poulesInConf = (confId) => {
+    const set = new Set();
+    teams.forEach((t) => {
+      if (t.conference === confId && t.poule) set.add(t.poule);
+    });
+    return Array.from(set);
+  };
+
+  const withPoule = (confId, poule) =>
+    standings.filter((row) => teamsById[row.teamId]?.conference === confId && teamsById[row.teamId]?.poule === poule);
+
+  const hasPoules = teams.some((t) => t.poule);
 
   return (
     <div>
@@ -99,7 +118,27 @@ export default function ClassementEquipesPage() {
       {standings.length === 0 ? (
         <div className="text-center py-14 rounded-lg border border-dashed border-[#2B4A82]">
           <Shield size={28} className="mx-auto mb-3 text-[#7C8AAE]" />
-          <p className="condensed text-lg text-[#B7C1DA]">Aucun résultat pour établir un classement.</p>
+          <p className="condensed text-lg text-[#B7C1DA]">Aucune équipe dans cette division.</p>
+        </div>
+      ) : hasPoules ? (
+        <div className="space-y-8">
+          {CONFERENCES.map((conf) => {
+            const poules = poulesInConf(conf.id);
+            if (poules.length === 0 && withConf(conf.id).length === 0) return null;
+            return (
+              <div key={conf.id}>
+                <p className="condensed text-base tracking-[0.15em] mb-3 text-[#EF4135]">{conf.label.toUpperCase()}</p>
+                <div className="space-y-5 pl-1">
+                  {poules.map((poule) => (
+                    <div key={poule}>
+                      <p className="condensed text-sm tracking-[0.15em] mb-2 text-[#3B7DD8]">POULE {poule.toUpperCase()}</p>
+                      <StandingsTable rows={withPoule(conf.id, poule)} teamsById={teamsById} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : champ === 'elite' ? (
         <div className="space-y-6">
