@@ -11,34 +11,55 @@ const CONFERENCES = [
   { id: 'sud', label: 'Conférence Sud' },
 ];
 
+function dash(v) {
+  return v && v > 0 ? v : '–';
+}
+
 function StandingsTable({ rows, teamsById }) {
   return (
-    <div className="rounded-lg overflow-hidden border border-[#2B4A82]">
-      <div className="grid grid-cols-[1fr,auto,auto,auto,auto,auto] gap-2 px-4 py-2 text-xs mono text-[#7C8AAE] border-b border-[#2B4A82]">
-        <span>Équipe</span><span>V</span><span>N</span><span>D</span><span>+/-</span><span>Pts</span>
+    <div className="overflow-x-auto rounded-lg border border-[#2B4A82]">
+      <div className="min-w-[640px]">
+        <div className="grid grid-cols-[1.6fr,repeat(10,0.6fr)] gap-1 px-3 py-2 text-[11px] mono text-[#7C8AAE] border-b border-[#2B4A82]">
+          <span>Équipe</span>
+          <span className="text-center">COEF</span>
+          <span className="text-center">J</span>
+          <span className="text-center">PTS</span>
+          <span className="text-center">PEN</span>
+          <span className="text-center">F</span>
+          <span className="text-center">G</span>
+          <span className="text-center">N</span>
+          <span className="text-center">P</span>
+          <span className="text-center">+</span>
+          <span className="text-center">-</span>
+        </div>
+        {rows.map((row, i) => {
+          const t = teamsById[row.teamId];
+          return (
+            <div
+              key={row.teamId}
+              className={
+                'grid grid-cols-[1.6fr,repeat(10,0.6fr)] gap-1 items-center px-3 py-2.5 ' +
+                (i % 2 === 0 ? 'bg-[#0F2C5C]' : 'bg-[#153A70]')
+              }
+            >
+              <span className="condensed flex items-center gap-2 truncate text-sm">
+                <TeamLogo team={t} size={18} />
+                {t?.name}
+              </span>
+              <span className="display text-sm text-center text-[#EF4135]">{row.coef.toFixed(2)}</span>
+              <span className="mono text-xs text-center text-[#B7C1DA]">{row.played}</span>
+              <span className="display text-sm text-center">{row.pts}</span>
+              <span className="mono text-xs text-center text-[#7C8AAE]">{dash(t?.pen)}</span>
+              <span className="mono text-xs text-center text-[#7C8AAE]">{dash(t?.forfeit)}</span>
+              <span className="mono text-xs text-center text-[#B7C1DA]">{row.w}</span>
+              <span className="mono text-xs text-center text-[#B7C1DA]">{row.t}</span>
+              <span className="mono text-xs text-center text-[#B7C1DA]">{row.l}</span>
+              <span className="mono text-xs text-center text-[#B7C1DA]">{row.pf}</span>
+              <span className="mono text-xs text-center text-[#B7C1DA]">{row.pa}</span>
+            </div>
+          );
+        })}
       </div>
-      {rows.map((row, i) => {
-        const t = teamsById[row.teamId];
-        return (
-          <div
-            key={row.teamId}
-            className={'grid grid-cols-[1fr,auto,auto,auto,auto,auto] items-center gap-2 px-4 py-3 ' + (i % 2 === 0 ? 'bg-[#0F2C5C]' : 'bg-[#153A70]')}
-          >
-            <span className="condensed flex items-center gap-2 truncate">
-              <TeamLogo team={t} size={18} />
-              {t?.name}
-            </span>
-            <span className="mono text-sm text-center text-[#B7C1DA]">{row.w}</span>
-            <span className="mono text-sm text-center text-[#B7C1DA]">{row.t}</span>
-            <span className="mono text-sm text-center text-[#B7C1DA]">{row.l}</span>
-            <span className={'mono text-sm text-center ' + (row.pf - row.pa >= 0 ? 'text-[#3B7DD8]' : 'text-[#EF4135]')}>
-              {row.pf - row.pa >= 0 ? '+' : ''}
-              {row.pf - row.pa}
-            </span>
-            <span className="display text-lg text-center text-[#EF4135]">{row.pts}</span>
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -67,9 +88,10 @@ export default function ClassementEquipesPage() {
 
       const table = {};
       const ensure = (id) => {
-        if (!table[id]) table[id] = { teamId: id, w: 0, l: 0, t: 0, pf: 0, pa: 0, pts: 0 };
+        if (!table[id]) table[id] = { teamId: id, w: 0, l: 0, t: 0, pf: 0, pa: 0, played: 0, pts: 0 };
         return table[id];
       };
+
       (matches || []).forEach((m) => {
         const h = ensure(m.home_team_id);
         const a = ensure(m.away_team_id);
@@ -77,19 +99,27 @@ export default function ClassementEquipesPage() {
         h.pa += m.away_score;
         a.pf += m.away_score;
         a.pa += m.home_score;
+        h.played += 1;
+        a.played += 1;
         if (m.home_score > m.away_score) {
-          h.w += 1; a.l += 1; h.pts += 2;
+          h.w += 1; a.l += 1; h.pts += 3; a.pts += 1;
         } else if (m.home_score < m.away_score) {
-          a.w += 1; h.l += 1; a.pts += 2;
+          a.w += 1; h.l += 1; a.pts += 3; h.pts += 1;
         } else {
-          h.t += 1; a.t += 1; h.pts += 1; a.pts += 1;
+          h.t += 1; a.t += 1; h.pts += 2; a.pts += 2;
         }
       });
 
-      // Ensure every team appears even with 0 played matches
       (teamsData || []).forEach((t) => ensure(t.id));
 
-      setStandings(Object.values(table).sort((x, y) => y.pts - x.pts || (y.pf - y.pa) - (x.pf - x.pa)));
+      const rows = Object.values(table).map((row) => {
+        const pts = Math.max(0, row.pts - (tMap[row.teamId]?.pen || 0));
+        const coef = row.played > 0 ? pts / row.played : 0;
+        return { ...row, pts, coef };
+      });
+
+      rows.sort((x, y) => y.coef - x.coef || (y.pf - y.pa) - (x.pf - x.pa));
+      setStandings(rows);
     })();
   }, [champ]);
 
