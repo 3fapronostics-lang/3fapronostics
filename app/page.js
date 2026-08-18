@@ -133,10 +133,10 @@ export default function PronosticsPage() {
     <div>
       <div className="mb-6">
         <p className="condensed text-sm tracking-[0.3em] mb-2 text-[#EF4135]">
-          SAISON 2026 · FOOTBALL AMÉRICAIN FRANÇAIS
+                   SAISON 2026/2027 · FOOTBALL AMÉRICAIN EN FRANCE ÉLITE/D1/D2
         </p>
-        <h1 className="display leading-[0.9] text-4xl sm:text-5xl">
-          PRONOSTIQUE. DÉFIE. <span className="text-[#EF4135]">DOMINE.</span>
+        <h1 className="display text-3xl sm:text-4xl mb-5 leading-tight">
+          À VOS PRONOS !
         </h1>
       </div>
 
