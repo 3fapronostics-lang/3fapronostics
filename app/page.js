@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../lib/AuthContext';
 import { CHAMPS } from '../components/ChampTabs';
 import ChampionPick from '../components/ChampionPick';
+import FormDots from '../components/FormDots';
 import TeamLogo from '../components/TeamLogo';
 import WinnerPicker from '../components/WinnerPicker';
 import { Plus, Lock, X, ShieldCheck } from 'lucide-react';
@@ -27,6 +28,7 @@ export default function PronosticsPage() {
   const isAdmin = user?.email === 'jules.fornage@gmail.com';
   const [teamsByChamp, setTeamsByChamp] = useState({ elite: [], d1: [], d2: [] });
   const [matchesByChamp, setMatchesByChamp] = useState({ elite: [], d1: [], d2: [] });
+  const [formByChamp, setFormByChamp] = useState({ elite: {}, d1: {}, d2: {} });
   const [myPredictions, setMyPredictions] = useState({});
   const [draftPredictions, setDraftPredictions] = useState({});
   const [resultDrafts, setResultDrafts] = useState({});
@@ -57,6 +59,31 @@ export default function PronosticsPage() {
       if (mByChamp[m.champ]) mByChamp[m.champ].push(m);
     });
     setMatchesByChamp(mByChamp);
+
+    const { data: playedMatches } = await supabase
+      .from('matches')
+      .select('champ, home_team_id, away_team_id, home_score, away_score, kickoff_at')
+      .not('home_score', 'is', null)
+      .order('kickoff_at', { ascending: true });
+    const fByChamp = { elite: {}, d1: {}, d2: {} };
+    (playedMatches || []).forEach((m) => {
+      if (!fByChamp[m.champ]) return;
+      const outcome = (isHome) => {
+        if (m.home_score === m.away_score) return 'D';
+        const homeWon = m.home_score > m.away_score;
+        return isHome === homeWon ? 'W' : 'L';
+      };
+      if (!fByChamp[m.champ][m.home_team_id]) fByChamp[m.champ][m.home_team_id] = [];
+      if (!fByChamp[m.champ][m.away_team_id]) fByChamp[m.champ][m.away_team_id] = [];
+      fByChamp[m.champ][m.home_team_id].push(outcome(true));
+      fByChamp[m.champ][m.away_team_id].push(outcome(false));
+    });
+    Object.keys(fByChamp).forEach((c) => {
+      Object.keys(fByChamp[c]).forEach((teamId) => {
+        fByChamp[c][teamId] = fByChamp[c][teamId].slice(-5);
+      });
+    });
+    setFormByChamp(fByChamp);
 
     if (user && allMatches && allMatches.length) {
       const ids = allMatches.map((m) => m.id);
@@ -220,14 +247,20 @@ export default function PronosticsPage() {
                       </div>
 
                       <div className="flex items-center justify-between gap-3 mb-3">
-                        <div className="flex items-center gap-2">
-                          <TeamLogo team={m.home} />
-                          <span className="condensed text-lg">{m.home?.name}</span>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <TeamLogo team={m.home} />
+                            <span className="condensed text-lg">{m.home?.name}</span>
+                          </div>
+                          <FormDots results={(formByChamp[c.id] || {})[m.home_team_id]} />
                         </div>
                         <span className="mono text-xs text-[#7C8AAE]">VS</span>
-                        <div className="flex items-center gap-2">
-                          <span className="condensed text-lg">{m.away?.name}</span>
-                          <TeamLogo team={m.away} />
+                        <div className="flex flex-col items-end">
+                          <div className="flex items-center gap-2">
+                            <span className="condensed text-lg">{m.away?.name}</span>
+                            <TeamLogo team={m.away} />
+                          </div>
+                          <FormDots results={(formByChamp[c.id] || {})[m.away_team_id]} />
                         </div>
                       </div>
 
