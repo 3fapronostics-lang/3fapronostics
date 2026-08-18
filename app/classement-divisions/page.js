@@ -37,7 +37,7 @@ export default function ClassementDivisionsPage() {
         const m = byMatch[p.match_id];
         if (!m) return;
         const winner = m.home_score === m.away_score ? 'draw' : m.home_score > m.away_score ? 'home' : 'away';
-        const pt = p.choice === winner ? 1 : 0;
+        const pt = p.choice === winner ? 3 : 0;
         const key = p.user_id;
         if (!stats[key]) stats[key] = { user: p.profiles?.display_name || 'Joueur', pts: 0, played: 0 };
         stats[key].pts += pt;
