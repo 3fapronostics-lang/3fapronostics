@@ -29,6 +29,7 @@ export default function PronosticsPage() {
   const [teams, setTeams] = useState([]);
   const [matches, setMatches] = useState([]);
   const [myPredictions, setMyPredictions] = useState({});
+  const [draftPredictions, setDraftPredictions] = useState({});
   const [resultDrafts, setResultDrafts] = useState({});
   const [showAdd, setShowAdd] = useState(false);
   const [newMatch, setNewMatch] = useState({ home_team_id: '', away_team_id: '', journee: '', kickoff_at: '' });
@@ -63,8 +64,10 @@ export default function PronosticsPage() {
         map[p.match_id] = p.choice;
       });
       setMyPredictions(map);
+      setDraftPredictions(map);
     } else {
       setMyPredictions({});
+      setDraftPredictions({});
     }
   };
 
@@ -73,13 +76,23 @@ export default function PronosticsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [champ, user]);
 
-  const choosePrediction = async (matchId, choice) => {
+  const choosePrediction = (matchId, choice) => {
     if (!user) return;
-    setMyPredictions((prev) => ({ ...prev, [matchId]: choice }));
+    setDraftPredictions((prev) => ({ ...prev, [matchId]: choice }));
+  };
+
+  const validatePrediction = async (matchId) => {
+    const choice = draftPredictions[matchId];
+    if (!user || !choice) return;
     const { error } = await supabase
       .from('predictions')
       .upsert({ match_id: matchId, user_id: user.id, choice }, { onConflict: 'match_id,user_id' });
-    if (error) flash("Impossible d'enregistrer ce pronostic.");
+    if (error) {
+      flash("Impossible d'enregistrer ce pronostic.");
+      return;
+    }
+    setMyPredictions((prev) => ({ ...prev, [matchId]: choice }));
+    flash('Pronostic enregistré ✓');
   };
 
   const isLocked = (m) => new Date() >= new Date(m.kickoff_at);
@@ -133,9 +146,9 @@ export default function PronosticsPage() {
     <div>
       <div className="mb-6">
         <p className="condensed text-sm tracking-[0.3em] mb-2 text-[#EF4135]">
-                   SAISON 2026/2027 · FOOTBALL AMÉRICAIN EN FRANCE ÉLITE/D1/D2
+          SAISON 2026/2027 · FOOTBALL AMÉRICAIN EN FRANCE ÉLITE/D1/D2
         </p>
-        <h1 className="display text-3xl sm:text-4xl mb-5 leading-tight">
+        <h1 className="display leading-[0.9] text-4xl sm:text-5xl">
           À VOS PRONOS !
         </h1>
       </div>
@@ -150,7 +163,8 @@ export default function PronosticsPage() {
       )}
 
       <ChampTabs value={champ} onChange={setChamp} />
-        <ChampionPick
+
+      <ChampionPick
         champ={champ}
         teams={teams}
         user={user}
@@ -184,7 +198,9 @@ export default function PronosticsPage() {
         <div className="space-y-4">
           {matches.map((m) => {
             const locked = isLocked(m);
-            const mine = myPredictions[m.id] || null;
+            const mine = draftPredictions[m.id] || null;
+            const savedMine = myPredictions[m.id] || null;
+            const dirty = mine && mine !== savedMine;
             return (
               <div key={m.id} className="relative rounded-lg px-5 py-4 bg-[#0F2C5C] border border-dashed border-[#2B4A82]">
                 <div className="flex items-center justify-between mb-3">
@@ -225,6 +241,21 @@ export default function PronosticsPage() {
                   disabled={!user || locked}
                   onChange={(choice) => choosePrediction(m.id, choice)}
                 />
+
+                {user && !locked && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      onClick={() => validatePrediction(m.id)}
+                      disabled={!dirty}
+                      className="condensed text-xs font-semibold px-3 py-1.5 rounded-full bg-[#EF4135] text-[#F7F7F5] disabled:opacity-40"
+                    >
+                      Valider mon pronostic
+                    </button>
+                    {!dirty && savedMine && (
+                      <span className="text-xs text-[#3B7DD8]">✓ Pronostic enregistré</span>
+                    )}
+                  </div>
+                )}
 
                 {locked && isAdmin && (
                   <div className="mt-3 pt-3 border-t border-[#2B4A82]">
