@@ -9,7 +9,6 @@ import { supabase } from '../lib/supabaseClient';
 
 const TABS = [
   { href: '/', label: 'Pronostics', icon: Flame },
-  { href: '/classement-divisions', label: 'Classement divisions', icon: Users },
   { href: '/resultats', label: 'Résultats', icon: CalendarDays },
   { href: '/classement-equipes', label: 'Classement équipes', icon: Shield },
   { href: '/classement-joueurs', label: 'Classement joueurs', icon: Trophy },
