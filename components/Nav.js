@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Flame, Users, CalendarDays, Shield, Trophy, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
 import { useAuth } from '../lib/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
@@ -29,7 +30,7 @@ export default function Nav() {
     <header className="sticky top-0 z-20 bg-[#0A1F44]/90 backdrop-blur">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-2">
-          <Flame size={20} className="text-[#EF4135]" />
+          <Image src="/logo.png" alt="Logo" width={28} height={28} className="rounded" />
           <span className="condensed font-semibold tracking-wide text-lg">
             3FA<span className="text-[#EF4135]">PRONOSTICS</span>
           </span>
