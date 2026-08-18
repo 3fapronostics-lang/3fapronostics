@@ -18,8 +18,8 @@ function dash(v) {
 function StandingsTable({ rows, teamsById }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-[#2B4A82]">
-      <div className="min-w-[640px]">
-        <div className="grid grid-cols-[1.6fr,repeat(10,0.6fr)] gap-1 px-3 py-2 text-[11px] mono text-[#7C8AAE] border-b border-[#2B4A82]">
+      <div className="min-w-[820px]">
+        <div className="grid grid-cols-[2.4fr,repeat(11,0.62fr)] gap-1 px-3 py-2 text-[11px] mono text-[#7C8AAE] border-b border-[#2B4A82]">
           <span>Équipe</span>
           <span className="text-center">COEF</span>
           <span className="text-center">J</span>
@@ -31,20 +31,22 @@ function StandingsTable({ rows, teamsById }) {
           <span className="text-center">P</span>
           <span className="text-center">+</span>
           <span className="text-center">-</span>
+          <span className="text-center">DIF</span>
         </div>
         {rows.map((row, i) => {
           const t = teamsById[row.teamId];
+          const dif = row.pf - row.pa;
           return (
             <div
               key={row.teamId}
               className={
-                'grid grid-cols-[1.6fr,repeat(10,0.6fr)] gap-1 items-center px-3 py-2.5 ' +
+                'grid grid-cols-[2.4fr,repeat(11,0.62fr)] gap-1 items-center px-3 py-2.5 ' +
                 (i % 2 === 0 ? 'bg-[#0F2C5C]' : 'bg-[#153A70]')
               }
             >
-              <span className="condensed flex items-center gap-2 truncate text-sm">
+              <span className="condensed flex items-center gap-2 text-sm min-w-0">
                 <TeamLogo team={t} size={60} />
-                {t?.name}
+                <span className="truncate">{t?.name}</span>
               </span>
               <span className="display text-sm text-center text-[#EF4135]">{row.coef.toFixed(2)}</span>
               <span className="mono text-xs text-center text-[#B7C1DA]">{row.played}</span>
@@ -56,6 +58,10 @@ function StandingsTable({ rows, teamsById }) {
               <span className="mono text-xs text-center text-[#B7C1DA]">{row.l}</span>
               <span className="mono text-xs text-center text-[#B7C1DA]">{row.pf}</span>
               <span className="mono text-xs text-center text-[#B7C1DA]">{row.pa}</span>
+              <span className={'mono text-xs text-center ' + (dif >= 0 ? 'text-[#3B7DD8]' : 'text-[#EF4135]')}>
+                {dif >= 0 ? '+' : ''}
+                {dif}
+              </span>
             </div>
           );
         })}
