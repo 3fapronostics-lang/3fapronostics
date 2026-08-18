@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../lib/AuthContext';
 import ChampTabs, { CHAMPS } from '../components/ChampTabs';
+import ChampionPick from '../components/ChampionPick';
 import TeamLogo from '../components/TeamLogo';
 import WinnerPicker from '../components/WinnerPicker';
 import { Plus, Lock, X, ShieldCheck } from 'lucide-react';
@@ -149,6 +150,13 @@ export default function PronosticsPage() {
       )}
 
       <ChampTabs value={champ} onChange={setChamp} />
+        <ChampionPick
+        champ={champ}
+        teams={teams}
+        user={user}
+        isAdmin={isAdmin}
+        label={CHAMPS.find((c) => c.id === champ)?.label}
+      />
 
       <div className="flex items-center justify-between mb-4 gap-2">
         <h2 className="condensed text-2xl font-semibold">
