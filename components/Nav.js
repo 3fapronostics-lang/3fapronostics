@@ -1,30 +1,25 @@
 'use client';
-
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Flame, Users, CalendarDays, Shield, Trophy, Image as ImageIcon, Instagram, Facebook } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '../lib/AuthContext';
 import { supabase } from '../lib/supabaseClient';
-
 const TABS = [
   { href: '/', label: 'Pronostics', icon: Flame },
   { href: '/resultats', label: 'Résultats', icon: CalendarDays },
   { href: '/classement-equipes', label: 'Classement équipes', icon: Shield },
   { href: '/classement-joueurs', label: 'Classement joueurs', icon: Trophy },
 ];
-
 export default function Nav() {
   const pathname = usePathname();
   const { user, loading } = useAuth();
   const router = useRouter();
-
   const logout = async () => {
     await supabase.auth.signOut();
     router.push('/');
     router.refresh();
   };
-
   return (
     <header className="sticky top-0 z-20 bg-[#0A1F44]/90 backdrop-blur">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
@@ -34,34 +29,52 @@ export default function Nav() {
             3FA<span className="text-[#EF4135]">PRONOSTICS</span>
           </span>
         </Link>
-        {!loading && (
-          user ? (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/equipes"
-                className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-[#2B4A82] text-[#B7C1DA]"
-              >
-                <ImageIcon size={13} /> Équipes
-              </Link>
-              <span className="mono text-xs text-[#EF4135] hidden sm:inline">{user.email}</span>
-              <button
-                onClick={logout}
-                className="text-xs px-2.5 py-1 rounded-full border border-[#2B4A82] text-[#B7C1DA]"
-              >
-                Déconnexion
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/login" className="text-sm px-3 py-1.5 rounded-full border border-[#2B4A82] text-[#B7C1DA]">
-                Connexion
-              </Link>
-              <Link href="/signup" className="text-sm px-3 py-1.5 rounded-full bg-[#EF4135] text-[#F7F7F5]">
-                Inscription
-              </Link>
-            </div>
-          )
-        )}
+        <div className="flex items-center gap-3">
+          <a
+            href="https://www.instagram.com/3fapronostics?igsh=a2R0cGsxdzVzZXR3&utm_source=qr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#B7C1DA] hover:text-[#EF4135]"
+          >
+            <Instagram size={18} />
+          </a>
+          <a
+            href="https://www.facebook.com/share/1DKF6Cv8rH/?mibextid=wwXIfr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#B7C1DA] hover:text-[#EF4135]"
+          >
+            <Facebook size={18} />
+          </a>
+          {!loading && (
+            user ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/equipes"
+                  className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-[#2B4A82] text-[#B7C1DA]"
+                >
+                  <ImageIcon size={13} /> Équipes
+                </Link>
+                <span className="mono text-xs text-[#EF4135] hidden sm:inline">{user.email}</span>
+                <button
+                  onClick={logout}
+                  className="text-xs px-2.5 py-1 rounded-full border border-[#2B4A82] text-[#B7C1DA]"
+                >
+                  Déconnexion
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link href="/login" className="text-sm px-3 py-1.5 rounded-full border border-[#2B4A82] text-[#B7C1DA]">
+                  Connexion
+                </Link>
+                <Link href="/signup" className="text-sm px-3 py-1.5 rounded-full bg-[#EF4135] text-[#F7F7F5]">
+                  Inscription
+                </Link>
+              </div>
+            )
+          )}
+        </div>
       </div>
       <div className="flex h-1 w-full">
         <div className="flex-1 bg-[#3B7DD8]" />
