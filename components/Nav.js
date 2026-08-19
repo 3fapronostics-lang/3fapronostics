@@ -22,9 +22,9 @@ export default function Nav() {
   };
   return (
     <header className="sticky top-0 z-20 bg-[#0A1F44]/90 backdrop-blur">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Logo" width={60} height={60} className="rounded" />
+          <Image src="/logo.png" alt="Logo" width={40} height={40} className="rounded shrink-0" />
           <span className="condensed font-semibold tracking-wide text-lg">
             3FA<span className="text-[#EF4135]">PRONOSTICS</span>
           </span>
