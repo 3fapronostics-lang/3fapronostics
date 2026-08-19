@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Flame, Users, CalendarDays, Shield, Trophy, Image as ImageIcon } from 'lucide-react';
+import { Flame, Users, CalendarDays, Shield, Trophy, Image as ImageIcon, Instagram, Facebook } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '../lib/AuthContext';
 import { supabase } from '../lib/supabaseClient';
