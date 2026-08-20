@@ -1,45 +1,33 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function ResetPasswordPage() {
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [done, setDone] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
+  const params = useSearchParams();
+  const tokenHash = params.get('token_hash');
   const router = useRouter();
 
-  useEffect(() => {
-    const init = async () => {
-      // Cas 1 : lien avec ?code=... (PKCE)
-      const url = new URL(window.location.href);
-      const code = url.searchParams.get('code');
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (!error) {
-          setReady(true);
-          return;
-        }
-      }
-      // Cas 2 : lien avec #access_token=... (déjà géré automatiquement par supabase-js)
-      const { data } = await supabase.auth.getSession();
-      if (data?.session) {
-        setReady(true);
-      }
-    };
-    init();
+  const [step, setStep] = useState('confirm'); // confirm | form | done
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || session) {
-        setReady(true);
-      }
-    });
-
-    return () => listener?.subscription?.unsubscribe();
-  }, []);
+  const unlockForm = async () => {
+    if (!tokenHash) {
+      setError('Lien invalide ou incomplet.');
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+    setLoading(false);
+    if (error) {
+      setError("Ce lien a expiré ou n'est plus valide. Redemande un nouveau lien.");
+      return;
+    }
+    setStep('form');
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -52,29 +40,39 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {
-      setError(
-        error.message === 'Auth session missing!'
-          ? "Le lien a expiré ou n'est plus valide. Redemande un nouveau lien de réinitialisation."
-          : error.message
-      );
+      setError(error.message);
       return;
     }
-    setDone(true);
-    setTimeout(() => {
-      router.push('/login');
-    }, 2000);
+    setStep('done');
+    setTimeout(() => router.push('/login'), 2000);
   };
 
   return (
     <div className="max-w-sm mx-auto">
       <h1 className="condensed text-2xl font-semibold mb-4">Nouveau mot de passe</h1>
-      {done ? (
-        <p className="text-sm text-[#B7C1DA]">
-          Mot de passe mis à jour ! Redirection vers la connexion...
-        </p>
-      ) : !ready ? (
-        <p className="text-sm text-[#B7C1DA]">Vérification du lien...</p>
-      ) : (
+
+      {step === 'confirm' && (
+        <div className="text-center">
+          <p className="text-sm mb-5 text-[#B7C1DA]">
+            Clique sur le bouton pour continuer la réinitialisation de ton mot de passe.
+          </p>
+          <button
+            onClick={unlockForm}
+            disabled={loading}
+            className="w-full condensed font-semibold text-sm py-2.5 rounded-full bg-[#EF4135] disabled:opacity-60"
+          >
+            {loading ? 'Vérification...' : 'Continuer'}
+          </button>
+          {error && (
+            <p className="text-sm mt-3 text-[#EF4135]">
+              {error}{' '}
+              <a href="/mot-de-passe-oublie" className="underline text-[#3B7DD8]">Redemander un lien</a>
+            </p>
+          )}
+        </div>
+      )}
+
+      {step === 'form' && (
         <form onSubmit={submit} className="space-y-3">
           <div>
             <label className="text-xs text-[#7C8AAE]">Nouveau mot de passe (6 caractères min.)</label>
@@ -96,9 +94,10 @@ export default function ResetPasswordPage() {
           </button>
         </form>
       )}
-      {!ready && !done && (
-        <p className="text-sm mt-4 text-[#B7C1DA]">
-          <a href="/mot-de-passe-oublie" className="underline text-[#3B7DD8]">Redemander un lien</a>
+
+      {step === 'done' && (
+        <p className="text-sm text-[#B7C1DA]">
+          Mot de passe mis à jour ! Redirection vers la connexion...
         </p>
       )}
     </div>
