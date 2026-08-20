@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
-export default function ConfirmSignupPage() {
+function ConfirmSignupInner() {
   const params = useSearchParams();
   const tokenHash = params.get('token_hash');
   const type = params.get('type') || 'signup';
@@ -57,11 +57,19 @@ export default function ConfirmSignupPage() {
       {status === 'error' && (
         <>
           <p className="text-sm mb-3 text-[#EF4135]">
-            {error || 'Ce lien a expiré ou n\'est plus valide.'}
+            {error || "Ce lien a expiré ou n'est plus valide."}
           </p>
           <a href="/signup" className="text-sm underline text-[#3B7DD8]">Retenter une inscription</a>
         </>
       )}
     </div>
+  );
+}
+
+export default function ConfirmSignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <ConfirmSignupInner />
+    </Suspense>
   );
 }
