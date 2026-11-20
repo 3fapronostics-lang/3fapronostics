@@ -10,6 +10,9 @@ import TeamLogo from '../components/TeamLogo';
 import WinnerPicker from '../components/WinnerPicker';
 import { Plus, Lock, X, ShieldCheck } from 'lucide-react';
 
+// Les matchs apparaissent pour les joueurs X jours avant le coup d'envoi
+const VISIBLE_DAYS = 7;
+
 function fmtDate(iso) {
   try {
     const d = new Date(iso);
@@ -55,8 +58,10 @@ export default function PronosticsPage() {
       .is('home_score', null)
       .order('kickoff_at', { ascending: true });
     const mByChamp = { elite: [], d1: [], d2: [] };
+    const horizon = Date.now() + VISIBLE_DAYS * 24 * 60 * 60 * 1000;
     (allMatches || []).forEach((m) => {
-      if (mByChamp[m.champ]) mByChamp[m.champ].push(m);
+      const visible = isAdmin || new Date(m.kickoff_at).getTime() <= horizon;
+      if (visible && mByChamp[m.champ]) mByChamp[m.champ].push(m);
     });
     setMatchesByChamp(mByChamp);
 
@@ -107,7 +112,7 @@ export default function PronosticsPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, isAdmin]);
 
   const choosePrediction = (matchId, choice) => {
     if (!user) return;
@@ -216,7 +221,7 @@ export default function PronosticsPage() {
             {matches.length === 0 ? (
               <div className="text-center py-10 rounded-lg border border-dashed border-[#2B4A82]">
                 <ShieldCheck size={24} className="mx-auto mb-2 text-[#7C8AAE]" />
-                <p className="condensed text-base text-[#B7C1DA]">Aucun match à pronostiquer ici.</p>
+                <p className="condensed text-base text-[#B7C1DA]">Aucun match à pronostiquer pour le moment.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -233,6 +238,9 @@ export default function PronosticsPage() {
                           {fmtDate(m.kickoff_at)}
                         </span>
                         <div className="flex items-center gap-2">
+                          {isAdmin && new Date(m.kickoff_at).getTime() > Date.now() + VISIBLE_DAYS * 24 * 60 * 60 * 1000 && (
+                            <span className="text-xs mono text-[#EF4135]">masqué aux joueurs</span>
+                          )}
                           {locked && (
                             <span className="flex items-center gap-1 text-xs mono text-[#B7C1DA]">
                               <Lock size={11} /> verrouillé
