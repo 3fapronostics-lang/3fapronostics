@@ -8,7 +8,7 @@ import ChampionPick from '../components/ChampionPick';
 import FormDots from '../components/FormDots';
 import TeamLogo from '../components/TeamLogo';
 import WinnerPicker from '../components/WinnerPicker';
-import { Plus, Lock, X, ShieldCheck } from 'lucide-react';
+import { Plus, Lock, X, ShieldCheck, Pencil } from 'lucide-react';
 
 // Les matchs apparaissent pour les joueurs X jours avant le coup d'envoi
 const VISIBLE_DAYS = 7;
@@ -38,6 +38,7 @@ export default function PronosticsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [newMatch, setNewMatch] = useState({ champ: 'elite', home_team_id: '', away_team_id: '', journee: '', date: '', time: '14:00' });
   const [notice, setNotice] = useState('');
+  const [editingId, setEditingId] = useState(null);
 
   const flash = (msg) => {
     setNotice(msg);
@@ -135,25 +136,58 @@ export default function PronosticsPage() {
 
   const isLocked = (m) => new Date() >= new Date(m.kickoff_at);
 
-  const addMatch = async () => {
+  const emptyMatch = (champ) => ({ champ, home_team_id: '', away_team_id: '', journee: '', date: '', time: '14:00' });
+
+  const openAdd = () => {
+    setEditingId(null);
+    setNewMatch(emptyMatch(newMatch.champ));
+    setShowAdd(true);
+  };
+
+  const openEdit = (m) => {
+    const d = new Date(m.kickoff_at);
+    const pad = (n) => String(n).padStart(2, '0');
+    setEditingId(m.id);
+    setNewMatch({
+      champ: m.champ,
+      home_team_id: m.home_team_id,
+      away_team_id: m.away_team_id,
+      journee: m.journee ? String(m.journee) : '',
+      date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()),
+      time: pad(d.getHours()) + ':' + pad(d.getMinutes()),
+    });
+    setShowAdd(true);
+  };
+
+  const closeModal = () => {
+    setShowAdd(false);
+    setEditingId(null);
+  };
+
+  const saveMatch = async () => {
     if (!newMatch.home_team_id || !newMatch.away_team_id || !newMatch.date) return;
     if (newMatch.home_team_id === newMatch.away_team_id) {
       flash('Les deux équipes doivent être différentes.');
       return;
     }
-    const { error } = await supabase.from('matches').insert({
+    const payload = {
       champ: newMatch.champ,
       home_team_id: newMatch.home_team_id,
       away_team_id: newMatch.away_team_id,
       journee: newMatch.journee ? parseInt(newMatch.journee, 10) : null,
       kickoff_at: new Date(`${newMatch.date}T${newMatch.time}`).toISOString(),
-    });
+    };
+    const { error } = editingId
+      ? await supabase.from('matches').update(payload).eq('id', editingId)
+      : await supabase.from('matches').insert(payload);
     if (error) {
-      flash("Impossible d'ajouter ce match.");
+      flash(editingId ? 'Impossible de modifier ce match.' : "Impossible d'ajouter ce match.");
       return;
     }
-    setNewMatch({ champ: newMatch.champ, home_team_id: '', away_team_id: '', journee: '', date: '', time: '14:00' });
+    setNewMatch(emptyMatch(newMatch.champ));
+    setEditingId(null);
     setShowAdd(false);
+    flash(editingId ? 'Match modifié ✓' : 'Match ajouté ✓');
     load();
   };
 
@@ -202,7 +236,7 @@ export default function PronosticsPage() {
 
       {isAdmin && (
         <button
-          onClick={() => setShowAdd(true)}
+          onClick={openAdd}
           className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-full bg-[#153A70] text-[#EF4135] border border-[#B72E23] mb-6"
         >
           <Plus size={15} /> Ajouter un match
@@ -247,7 +281,12 @@ export default function PronosticsPage() {
                             </span>
                           )}
                           {isAdmin && (
-                            <button onClick={() => removeMatch(m.id)} className="text-[#7C8AAE]">
+                            <button onClick={() => openEdit(m)} className="text-[#7C8AAE]" title="Modifier">
+                              <Pencil size={13} />
+                            </button>
+                          )}
+                          {isAdmin && (
+                            <button onClick={() => removeMatch(m.id)} className="text-[#7C8AAE]" title="Supprimer">
                               <X size={14} />
                             </button>
                           )}
@@ -338,8 +377,8 @@ export default function PronosticsPage() {
         <div className="fixed inset-0 z-30 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70">
           <div className="w-full sm:max-w-sm rounded-t-xl sm:rounded-xl p-5 bg-[#0F2C5C] border border-[#2B4A82]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="condensed text-xl font-semibold">Nouveau match</h3>
-              <button onClick={() => setShowAdd(false)} className="text-[#7C8AAE]">
+              <h3 className="condensed text-xl font-semibold">{editingId ? 'Modifier le match' : 'Nouveau match'}</h3>
+              <button onClick={closeModal} className="text-[#7C8AAE]">
                 <X size={18} />
               </button>
             </div>
@@ -348,6 +387,7 @@ export default function PronosticsPage() {
                 <label className="text-xs text-[#7C8AAE]">Championnat</label>
                 <select
                   value={newMatch.champ}
+                  disabled={!!editingId}
                   onChange={(e) => setNewMatch((n) => ({ ...n, champ: e.target.value, home_team_id: '', away_team_id: '' }))}
                   className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
                 >
@@ -414,22 +454,19 @@ export default function PronosticsPage() {
               </div>
               <div>
                 <label className="text-xs text-[#7C8AAE]">Heure</label>
-                <select
+                <input
+                  type="time"
+                  step="900"
                   value={newMatch.time}
                   onChange={(e) => setNewMatch((n) => ({ ...n, time: e.target.value }))}
                   className="w-full mt-1 px-3 py-2 rounded text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
-                >
-                  <option value="12:00">12h00</option>
-                  <option value="14:00">14h00</option>
-                  <option value="16:00">16h00</option>
-                  <option value="18:00">18h00</option>
-                </select>
+                />
               </div>
               <button
-                onClick={addMatch}
+                onClick={saveMatch}
                 className="w-full mt-2 condensed font-semibold text-sm py-2.5 rounded-full bg-[#EF4135]"
               >
-                Ajouter le match
+                {editingId ? 'Enregistrer les modifications' : 'Ajouter le match'}
               </button>
             </div>
           </div>
