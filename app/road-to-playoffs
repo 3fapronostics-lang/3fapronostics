@@ -32,6 +32,19 @@ const RULES = {
           { slot: 'sud-sf2', label: 'Conférence Sud · Demi-finale 2', a: { g: 'sud', r: 2 }, b: { g: 'sud', r: 3 } },
         ],
       },
+      {
+        title: 'Finales de conférence · 5/6 juin 2027',
+        matches: [
+          { slot: 'nord-cf', label: 'Finale de conférence Nord', a: { w: 'nord-sf1', ph: 'Vainqueur demi-finale 1 Nord' }, b: { w: 'nord-sf2', ph: 'Vainqueur demi-finale 2 Nord' } },
+          { slot: 'sud-cf', label: 'Finale de conférence Sud', a: { w: 'sud-sf1', ph: 'Vainqueur demi-finale 1 Sud' }, b: { w: 'sud-sf2', ph: 'Vainqueur demi-finale 2 Sud' } },
+        ],
+      },
+      {
+        title: "Finale D1 · Casque d'or · 19/20 juin 2027",
+        matches: [
+          { slot: 'final', label: "Finale D1 · Casque d'or", a: { w: 'nord-cf', ph: 'Vainqueur conférence Nord' }, b: { w: 'sud-cf', ph: 'Vainqueur conférence Sud' }, champion: true },
+        ],
+      },
     ],
   },
 };
@@ -109,6 +122,7 @@ export default function RoadToPlayoffsPage() {
   }, [champ]);
 
   const rules = RULES[champ];
+  const allMatches = rules ? rules.rounds.flatMap((r) => r.matches) : [];
   const label = CHAMPS.find((c) => c.id === champ)?.label;
 
   const rankGroup = (g) =>
@@ -118,7 +132,18 @@ export default function RoadToPlayoffsPage() {
 
   const groupStarted = (g) => rankGroup(g).some((r) => r.played > 0);
 
+  const teamById = (id) => (id ? rows.find((r) => String(r.team.id) === String(id))?.team || null : null);
+
+  // Renvoie l'équipe d'une case : issue du classement (g/r) ou vainqueur d'un match précédent (w)
   const resolveSlot = (ref) => {
+    if (ref.w) {
+      const prev = allMatches.find((m) => m.slot === ref.w);
+      const pa = resolveSlot(prev.a);
+      const pb = resolveSlot(prev.b);
+      const wid = results[ref.w] || '';
+      const team = [pa.team, pb.team].find((t) => t && String(t.id) === wid) || null;
+      return { team, placeholder: ref.ph };
+    }
     const g = rules.groups.find((x) => x.id === ref.g);
     const list = rankGroup(g);
     const team = groupStarted(g) ? list[ref.r - 1]?.team || null : null;
@@ -263,10 +288,28 @@ export default function RoadToPlayoffsPage() {
                       );
                     })}
                   </div>
+                  {round.matches.some((m) => m.champion) && (() => {
+                    const fm = round.matches.find((m) => m.champion);
+                    const champTeam = (() => {
+                      const a = resolveSlot(fm.a).team;
+                      const b = resolveSlot(fm.b).team;
+                      const wid = results[fm.slot] || '';
+                      return [a, b].find((t) => t && String(t.id) === wid) || null;
+                    })();
+                    return champTeam ? (
+                      <div className="mt-4 rounded-lg p-4 text-center bg-[#EF4135]/15 border border-[#EF4135]">
+                        <p className="condensed text-xs tracking-[0.2em] text-[#EF4135] mb-2">CHAMPION {label.toUpperCase()} · CASQUE D&apos;OR</p>
+                        <div className="flex items-center justify-center gap-3">
+                          <TeamLogo team={champTeam} size={48} />
+                          <span className="display text-2xl">{champTeam.name}</span>
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               ))}
               <p className="text-xs text-[#7C8AAE]">
-                * Les affiches se précisent au fil du classement et sont confirmées à la fin de la saison régulière.
+                * L'équipe qui reçoit est déterminée selon l'art. 56 du règlement particulier relatif aux compétitions de football américain. Les affiches se précisent au fil du classement et sont confirmées à la fin de la saison régulière.
               </p>
             </div>
           </div>
