@@ -84,7 +84,7 @@ export default function Nav() {
         <div className="flex-1 bg-[#F7F7F5]" />
         <div className="flex-1 bg-[#EF4135]" />
       </div>
-      <nav className="max-w-4xl mx-auto px-2 sm:px-6 pt-2 flex gap-0.5 sm:gap-1 overflow-x-auto">
+      <nav className="max-w-4xl mx-auto px-2 sm:px-6 pt-2 flex gap-0.5 sm:gap-1 overflow-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TABS.map((t) => {
           const active = pathname === t.href;
           const Icon = t.icon;
@@ -93,7 +93,7 @@ export default function Nav() {
               key={t.href}
               href={t.href}
               className={
-                'condensed font-semibold text-[11px] sm:text-sm flex-1 sm:flex-none justify-center px-1 sm:px-3 py-1.5 rounded-t-md whitespace-nowrap flex items-center gap-1.5 border-b-[3px] ' +
+                'condensed font-semibold text-[10px] min-[400px]:text-[11px] md:text-sm flex-1 min-w-0 md:flex-none justify-center px-0.5 md:px-3 py-1.5 rounded-t-md whitespace-nowrap flex items-center gap-1.5 border-b-[3px] ' +
                 (active
                   ? 'bg-[#F7F7F5] text-[#0A1F44] border-[#EF4135]'
                   : 'text-[#B7C1DA] border-[#2B4A82]')
