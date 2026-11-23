@@ -1,13 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Flame, Users, CalendarDays, Shield, Trophy, Medal, Image as ImageIcon, Instagram, Facebook } from 'lucide-react';
+import { Flame, Users, CalendarDays, CalendarRange, Shield, Trophy, Medal, Image as ImageIcon, Instagram, Facebook } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '../lib/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 const TABS = [
   { href: '/', label: 'Pronostics', icon: Flame },
   { href: '/resultats', label: 'Résultats', icon: CalendarDays },
+  { href: '/calendrier', label: 'Calendrier', icon: CalendarRange },
   { href: '/classement-equipes', label: 'Classement équipes', icon: Shield },
   { href: '/road-to-playoffs', label: 'Road to playoffs', icon: Medal },
   { href: '/classement-joueurs', label: 'Classement joueurs', icon: Trophy },
