@@ -60,25 +60,38 @@ export default function PronosticsPage() {
     });
     setTeamsByChamp(tByChamp);
 
-    const { data: allMatches } = await supabase
+    const horizonISO = new Date(Date.now() + VISIBLE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+    // Matchs visibles par tout le monde : coup d'envoi dans les 7 prochains jours (ou déjà passé)
+    const { data: allMatches, error: errVisible } = await supabase
       .from('matches')
       .select('*, home:home_team_id(*), away:away_team_id(*)')
       .is('home_score', null)
+      .lte('kickoff_at', horizonISO)
       .order('kickoff_at', { ascending: true });
     if (myId !== loadId.current) return;
+    if (errVisible) flash('Erreur de chargement des matchs : ' + errVisible.message);
     const mByChamp = { elite: [], d1: [], d2: [] };
-    const horizon = Date.now() + VISIBLE_DAYS * 24 * 60 * 60 * 1000;
-    const hidden = [];
     (allMatches || []).forEach((m) => {
-      const visible = new Date(m.kickoff_at).getTime() <= horizon;
-      if (visible) {
-        if (mByChamp[m.champ]) mByChamp[m.champ].push(m);
-      } else if (isAdmin) {
-        hidden.push(m);
-      }
+      if (mByChamp[m.champ]) mByChamp[m.champ].push(m);
     });
     setMatchesByChamp(mByChamp);
-    setHiddenMatches(hidden);
+
+    // Calendrier à venir : uniquement pour l'admin
+    if (isAdmin) {
+      const { data: futureMatches, error: errHidden } = await supabase
+        .from('matches')
+        .select('*, home:home_team_id(*), away:away_team_id(*)')
+        .is('home_score', null)
+        .gt('kickoff_at', horizonISO)
+        .order('kickoff_at', { ascending: true })
+        .limit(2000);
+      if (myId !== loadId.current) return;
+      if (errHidden) flash('Erreur de chargement du calendrier à venir : ' + errHidden.message);
+      setHiddenMatches(futureMatches || []);
+    } else {
+      setHiddenMatches([]);
+    }
 
     const { data: playedMatches } = await supabase
       .from('matches')
