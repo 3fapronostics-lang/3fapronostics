@@ -1,0 +1,138 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { supabase } from '../../lib/supabaseClient';
+import ChampTabs, { CHAMPS } from '../../components/ChampTabs';
+import TeamLogo from '../../components/TeamLogo';
+import { CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react';
+
+function fmtDate(iso) {
+  try {
+    const d = new Date(iso);
+    return (
+      d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' }) +
+      ' · ' +
+      d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    );
+  } catch {
+    return iso;
+  }
+}
+
+export default function CalendrierPage() {
+  const [champ, setChamp] = useState('elite');
+  const [teams, setTeams] = useState({});
+  const [matches, setMatches] = useState([]);
+  const [journee, setJournee] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const loadId = useRef(0);
+
+  useEffect(() => {
+    const id = ++loadId.current;
+    setLoading(true);
+    (async () => {
+      const { data: t } = await supabase.from('teams').select('*').eq('champ', champ);
+      const { data: m } = await supabase
+        .from('matches')
+        .select('id, journee, kickoff_at, home_team_id, away_team_id, home_score, away_score')
+        .eq('champ', champ)
+        .order('kickoff_at', { ascending: true })
+        .limit(2000);
+      if (id !== loadId.current) return;
+      const map = {};
+      (t || []).forEach((x) => (map[String(x.id)] = x));
+      setTeams(map);
+      const list = m || [];
+      setMatches(list);
+      // Journée par défaut : la première qui a encore un match à jouer, sinon la dernière
+      const js = [...new Set(list.map((x) => x.journee).filter((j) => j != null))].sort((a, b) => a - b);
+      const next = js.find((j) => list.some((x) => x.journee === j && x.home_score == null));
+      setJournee(next ?? js[js.length - 1] ?? null);
+      setLoading(false);
+    })();
+  }, [champ]);
+
+  const journees = [...new Set(matches.map((x) => x.journee).filter((j) => j != null))].sort((a, b) => a - b);
+  const idx = journees.indexOf(journee);
+  const shown = matches.filter((m) => m.journee === journee);
+  const label = CHAMPS.find((c) => c.id === champ)?.label;
+
+  const Team = ({ id, right }) => {
+    const t = teams[String(id)];
+    return (
+      <div className={`flex items-center gap-2 min-w-0 flex-1 ${right ? 'justify-end text-right' : ''}`}>
+        {!right && t && <TeamLogo team={t} size={30} />}
+        <span className="condensed text-base font-semibold truncate">{t?.name || '—'}</span>
+        {right && t && <TeamLogo team={t} size={30} />}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <ChampTabs value={champ} onChange={setChamp} />
+      <h2 className="condensed text-2xl font-semibold mb-1 flex items-center gap-2">
+        <CalendarRange size={22} className="text-[#EF4135]" /> Calendrier — {label}
+      </h2>
+      <p className="text-xs text-[#7C8AAE] mb-5">
+        Toute la saison, journée par journée. Les pronostics s&apos;ouvrent 7 jours avant chaque match.
+      </p>
+
+      {loading ? (
+        <p className="text-[#B7C1DA]">Chargement…</p>
+      ) : journees.length === 0 ? (
+        <p className="text-[#B7C1DA]">Aucun match au calendrier pour le moment.</p>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <button
+              onClick={() => setJournee(journees[idx - 1])}
+              disabled={idx <= 0}
+              className="p-2 rounded bg-[#0F2C5C] border border-[#2B4A82] disabled:opacity-30"
+              aria-label="Journée précédente"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <select
+              value={journee ?? ''}
+              onChange={(e) => setJournee(parseInt(e.target.value, 10))}
+              className="condensed text-lg font-semibold bg-[#0F2C5C] border border-[#2B4A82] rounded px-3 py-2 flex-1 text-center"
+            >
+              {journees.map((j) => (
+                <option key={j} value={j}>
+                  Journée {j}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setJournee(journees[idx + 1])}
+              disabled={idx >= journees.length - 1}
+              className="p-2 rounded bg-[#0F2C5C] border border-[#2B4A82] disabled:opacity-30"
+              aria-label="Journée suivante"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {shown.map((m) => {
+              const played = m.home_score != null && m.away_score != null;
+              return (
+                <div key={m.id} className="rounded-lg border border-[#2B4A82] bg-[#0F2C5C] p-3">
+                  <p className="mono text-xs text-[#7C8AAE] mb-2">{fmtDate(m.kickoff_at)}</p>
+                  <div className="flex items-center gap-3">
+                    <Team id={m.home_team_id} />
+                    <span className="mono text-lg font-bold shrink-0 min-w-[64px] text-center">
+                      {played ? `${m.home_score} - ${m.away_score}` : 'vs'}
+                    </span>
+                    <Team id={m.away_team_id} right />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
