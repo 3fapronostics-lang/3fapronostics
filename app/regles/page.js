@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Flame, Lock, Trophy, Medal, CalendarDays, Crown } from 'lucide-react';
+import { BookOpen, Flame, Lock, Trophy, CalendarDays, Crown } from 'lucide-react';
 
 const Section = ({ icon: Icon, title, children }) => (
   <section className="rounded-lg border border-[#2B4A82] bg-[#0F2C5C] p-5">
@@ -15,7 +15,7 @@ export default function ReglesPage() {
   return (
     <div>
       <h2 className="condensed text-2xl font-semibold mb-1 flex items-center gap-2">
-        <BookOpen size={22} className="text-[#EF4135]" /> Règles du jeu
+        <BookOpen size={22} className="text-[#EF4135]" /> Règlement des pronostics
       </h2>
       <p className="text-xs text-[#7C8AAE] mb-5">
         Pronostique les matchs du football américain français : Ligue Élite, D1 et D2.
@@ -56,16 +56,6 @@ export default function ReglesPage() {
             <strong className="text-white">30 points</strong> si ton choix remporte le titre.
           </p>
           <p>Ce pronostic doit être fait avant la date limite fixée pour chaque division.</p>
-        </Section>
-
-        <Section icon={Medal} title="Classements">
-          <p>
-            Le classement des joueurs additionne tous tes points. En cas d&apos;égalité, le joueur ayant pronostiqué le plus de matchs passe devant.
-          </p>
-          <p>
-            Les onglets Classement équipes et Road to playoffs suivent la saison réelle : le classement des équipes se fait au
-            coefficient (points ÷ matchs joués), avec 3 points pour une victoire, 2 pour un nul et 1 pour une défaite.
-          </p>
         </Section>
 
         <p className="text-xs text-[#7C8AAE] text-center pt-2">Bonne chance et que le meilleur pronostiqueur gagne !</p>
