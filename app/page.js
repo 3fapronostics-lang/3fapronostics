@@ -39,6 +39,10 @@ export default function PronosticsPage() {
   const [newMatch, setNewMatch] = useState({ champ: 'elite', home_team_id: '', away_team_id: '', journee: '', date: '', time: '14:00' });
   const [notice, setNotice] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [hiddenMatches, setHiddenMatches] = useState([]);
+  const [showHidden, setShowHidden] = useState(false);
+  const [hiddenChamp, setHiddenChamp] = useState('elite');
+  const [hiddenJournee, setHiddenJournee] = useState('1');
 
   const flash = (msg) => {
     setNotice(msg);
@@ -60,11 +64,17 @@ export default function PronosticsPage() {
       .order('kickoff_at', { ascending: true });
     const mByChamp = { elite: [], d1: [], d2: [] };
     const horizon = Date.now() + VISIBLE_DAYS * 24 * 60 * 60 * 1000;
+    const hidden = [];
     (allMatches || []).forEach((m) => {
-      const visible = isAdmin || new Date(m.kickoff_at).getTime() <= horizon;
-      if (visible && mByChamp[m.champ]) mByChamp[m.champ].push(m);
+      const visible = new Date(m.kickoff_at).getTime() <= horizon;
+      if (visible) {
+        if (mByChamp[m.champ]) mByChamp[m.champ].push(m);
+      } else if (isAdmin) {
+        hidden.push(m);
+      }
     });
     setMatchesByChamp(mByChamp);
+    setHiddenMatches(hidden);
 
     const { data: playedMatches } = await supabase
       .from('matches')
@@ -272,9 +282,6 @@ export default function PronosticsPage() {
                           {fmtDate(m.kickoff_at)}
                         </span>
                         <div className="flex items-center gap-2">
-                          {isAdmin && new Date(m.kickoff_at).getTime() > Date.now() + VISIBLE_DAYS * 24 * 60 * 60 * 1000 && (
-                            <span className="text-xs mono text-[#EF4135]">masqué aux joueurs</span>
-                          )}
                           {locked && (
                             <span className="flex items-center gap-1 text-xs mono text-[#B7C1DA]">
                               <Lock size={11} /> verrouillé
@@ -372,6 +379,86 @@ export default function PronosticsPage() {
           </div>
         );
       })}
+
+      {isAdmin && (
+        <div className="mb-10">
+          <button
+            onClick={() => setShowHidden((v) => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-[#153A70] border border-[#B72E23] text-left"
+          >
+            <span className="condensed text-base font-semibold text-[#EF4135]">
+              Calendrier à venir (masqué aux joueurs) · {hiddenMatches.length} matchs
+            </span>
+            <span className="text-[#EF4135]">{showHidden ? '▲' : '▼'}</span>
+          </button>
+
+          {showHidden && (() => {
+            const list = hiddenMatches.filter(
+              (m) => m.champ === hiddenChamp && (hiddenJournee === '' || String(m.journee) === hiddenJournee)
+            );
+            return (
+              <div className="mt-3">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {CHAMPS.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => setHiddenChamp(c.id)}
+                      className={
+                        'condensed text-sm font-medium px-3 py-1.5 rounded-full border ' +
+                        (hiddenChamp === c.id
+                          ? 'bg-[#3B7DD8] text-[#0A1F44] border-[#3B7DD8]'
+                          : 'text-[#B7C1DA] border-[#2B4A82]')
+                      }
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                  <select
+                    value={hiddenJournee}
+                    onChange={(e) => setHiddenJournee(e.target.value)}
+                    className="px-3 py-1.5 rounded-full text-sm bg-[#153A70] border border-[#2B4A82] outline-none"
+                  >
+                    <option value="">Toutes les journées</option>
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((j) => (
+                      <option key={j} value={String(j)}>J{j}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {list.length === 0 ? (
+                  <p className="text-sm text-[#7C8AAE]">Aucun match masqué pour ce filtre.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {list.map((m) => (
+                      <div key={m.id} className="flex items-center gap-2 px-3 py-2 rounded bg-[#0F2C5C] border border-[#2B4A82]">
+                        <div className="flex-1 min-w-0">
+                          <p className="mono text-[11px] text-[#7C8AAE]">
+                            {m.journee ? 'J' + m.journee + ' · ' : ''}
+                            {fmtDate(m.kickoff_at)}
+                          </p>
+                          <p className="condensed text-sm flex items-center gap-1.5 flex-wrap">
+                            <TeamLogo team={m.home} size={20} />
+                            <span>{m.home?.name}</span>
+                            <span className="text-[#7C8AAE]">vs</span>
+                            <TeamLogo team={m.away} size={20} />
+                            <span>{m.away?.name}</span>
+                          </p>
+                        </div>
+                        <button onClick={() => openEdit(m)} className="text-[#7C8AAE]" title="Modifier">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => removeMatch(m.id)} className="text-[#7C8AAE]" title="Supprimer">
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {showAdd && (
         <div className="fixed inset-0 z-30 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70">
