@@ -16,6 +16,28 @@ const ADMIN_EMAIL = 'jules.fornage@gmail.com';
 // Pour ajouter l'Élite ou la D2, il suffit de compléter cet objet.
 // ---------------------------------------------------------------------------
 const RULES = {
+  elite: {
+    groups: [
+      { id: 'nord', label: 'Conférence Nord', conference: 'nord', poule: null, qualified: 2 },
+      { id: 'sud', label: 'Conférence Sud', conference: 'sud', poule: null, qualified: 2 },
+    ],
+    rounds: [
+      {
+        title: 'Demi-finales · 12/13 juin 2027',
+        matches: [
+          { slot: 'sf1', label: 'Demi-finale 1', a: { g: 'nord', r: 1 }, b: { g: 'sud', r: 2 } },
+          { slot: 'sf2', label: 'Demi-finale 2', a: { g: 'sud', r: 1 }, b: { g: 'nord', r: 2 } },
+        ],
+      },
+      {
+        title: 'Finale Élite · Casque de diamant · 26 juin 2027',
+        matches: [
+          { slot: 'final', label: 'Finale Élite · Casque de diamant', a: { w: 'sf1', ph: 'Vainqueur demi-finale 1' }, b: { w: 'sf2', ph: 'Vainqueur demi-finale 2' }, champion: 'Casque de diamant' },
+        ],
+      },
+    ],
+    note: "* Les affiches se précisent au fil du classement et sont confirmées à la fin de la saison régulière.",
+  },
   d1: {
     groups: [
       { id: 'no', label: 'Poule Nord-Ouest', conference: 'nord', poule: 'Nord-Ouest', qualified: 2 },
@@ -42,14 +64,68 @@ const RULES = {
       {
         title: "Finale D1 · Casque d'or · 19/20 juin 2027",
         matches: [
-          { slot: 'final', label: "Finale D1 · Casque d'or", a: { w: 'nord-cf', ph: 'Vainqueur conférence Nord' }, b: { w: 'sud-cf', ph: 'Vainqueur conférence Sud' }, champion: true },
+          { slot: 'final', label: "Finale D1 · Casque d'or", a: { w: 'nord-cf', ph: 'Vainqueur conférence Nord' }, b: { w: 'sud-cf', ph: 'Vainqueur conférence Sud' }, champion: "Casque d'or" },
         ],
       },
     ],
+    note: "* L'équipe qui reçoit est déterminée selon l'art. 56 du règlement particulier relatif aux compétitions de football américain. Les affiches se précisent au fil du classement et sont confirmées à la fin de la saison régulière.",
+  },
+  d2: {
+    groups: [
+      // Conférence Nord
+      { id: 'idfo', label: 'IDF Ouest', conference: 'nord', members: ['flash b', 'lycans', 'molosses b', 'cobras'], qualified: 1 },
+      { id: 'nor', label: 'NOR', conference: 'nord', members: ['boucaniers', 'conquerants', 'salamandres', 'terribles', 'leopards b'], qualified: 1 },
+      { id: 'idfs', label: 'IDF Sud', conference: 'nord', members: ['mousquetaires', 'citizens', 'dragons', 'chevaliers'], qualified: 1 },
+      { id: 'idfe', label: 'IDF Est', conference: 'nord', members: ['fontenay', 'homies', 'saints', 'pygargues'], qualified: 1 },
+      { id: 'hdf', label: 'HDF', conference: 'nord', members: ['bears', 'coyotes', 'spartiates b', 'mustangs', 'wildcats'], qualified: 1 },
+      { id: 'gre', label: 'GRE', conference: 'nord', members: ['minotaure', 'patriotes', 'geants', 'artilleurs', 'tigres'], qualified: 1 },
+      { id: 'bre', label: 'BRE', conference: 'nord', members: ['kelted', 'licornes', 'tonnerre', 'celtics', 'mariners', 'the bridge'], qualified: 1 },
+      { id: 'pdl', label: 'PDL', conference: 'nord', members: ['yankees', 'ankou', 'dockers', 'pionn', 'caimans'], qualified: 1 },
+      // Conférence Sud
+      { id: 'ara', label: 'ARA', conference: 'sud', members: ['falcons', 'centaures', 'gones', 'aigles', 'sharks', 'avalanches', 'black panthers'], qualified: 1 },
+      { id: 'bfc', label: 'BFC', conference: 'sud', members: ['hawks', 'marshals', 'fenris', 'bisons', 'chalon'], qualified: 1 },
+      { id: 'atl', label: 'Atlantique', conference: 'sud', members: ['kangourous', 'sphinx', 'bordeaux', 'ours b', 'scorpions', 'grizzlys'], qualified: 1 },
+      { id: 'med', label: 'Méditerranée', conference: 'sud', members: ['black lions', 'centurions de n', 'empereurs', 'argonautes', 'avignon', 'blue stars'], qualified: 1 },
+    ],
+    rounds: [
+      {
+        title: 'Barrages · 22/23 mai 2027 (Conférence Nord)',
+        matches: [
+          { slot: 'nord-b1', label: 'Barrage 1', a: { g: 'idfo', r: 1 }, b: { g: 'nor', r: 1 } },
+          { slot: 'nord-b2', label: 'Barrage 2', a: { g: 'idfs', r: 1 }, b: { g: 'idfe', r: 1 } },
+          { slot: 'nord-b3', label: 'Barrage 3', a: { g: 'hdf', r: 1 }, b: { g: 'gre', r: 1 } },
+          { slot: 'nord-b4', label: 'Barrage 4', a: { g: 'bre', r: 1 }, b: { g: 'pdl', r: 1 } },
+        ],
+      },
+      {
+        title: 'Demi-finales · 5/6 juin 2027',
+        matches: [
+          { slot: 'nord-sf1', label: 'Conférence Nord · Demi-finale 1', a: { w: 'nord-b1', ph: 'Vainqueur barrage 1' }, b: { w: 'nord-b2', ph: 'Vainqueur barrage 2' } },
+          { slot: 'nord-sf2', label: 'Conférence Nord · Demi-finale 2', a: { w: 'nord-b3', ph: 'Vainqueur barrage 3' }, b: { w: 'nord-b4', ph: 'Vainqueur barrage 4' } },
+          { slot: 'sud-sf1', label: 'Conférence Sud · Demi-finale 1', a: { g: 'ara', r: 1 }, b: { g: 'bfc', r: 1 } },
+          { slot: 'sud-sf2', label: 'Conférence Sud · Demi-finale 2', a: { g: 'atl', r: 1 }, b: { g: 'med', r: 1 } },
+        ],
+      },
+      {
+        title: 'Finales de conférence · 12/13 juin 2027',
+        matches: [
+          { slot: 'nord-cf', label: 'Finale de conférence Nord', a: { w: 'nord-sf1', ph: 'Vainqueur demi-finale 1 Nord' }, b: { w: 'nord-sf2', ph: 'Vainqueur demi-finale 2 Nord' } },
+          { slot: 'sud-cf', label: 'Finale de conférence Sud', a: { w: 'sud-sf1', ph: 'Vainqueur demi-finale 1 Sud' }, b: { w: 'sud-sf2', ph: 'Vainqueur demi-finale 2 Sud' } },
+        ],
+      },
+      {
+        title: "Finale D2 · Casque d'argent · 26/27 juin 2027",
+        matches: [
+          { slot: 'final', label: "Finale D2 · Casque d'argent", a: { w: 'nord-cf', ph: 'Vainqueur conférence Nord' }, b: { w: 'sud-cf', ph: 'Vainqueur conférence Sud' }, champion: "Casque d'argent" },
+        ],
+      },
+    ],
+    note: "* La rencontre se joue chez le club avec le meilleur bilan de la saison régulière (conférence Nord) ; l'équipe qui reçoit est déterminée selon l'art. 56 du règlement particulier relatif aux compétitions de football américain (conférence Sud). Les affiches se précisent au fil du classement.",
   },
 };
 
 const norm = (s) => (s || '').toLowerCase().replace(/[\s\-_]/g, '');
+const plain = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const rankLabel = (r) => (r === 1 ? '1er' : r + 'ème');
 
 export default function RoadToPlayoffsPage() {
@@ -126,9 +202,13 @@ export default function RoadToPlayoffsPage() {
   const label = CHAMPS.find((c) => c.id === champ)?.label;
 
   const rankGroup = (g) =>
-    rows.filter(
-      (r) => r.team.conference === g.conference && (!g.poule || norm(r.team.poule) === norm(g.poule))
-    );
+    rows.filter((r) => {
+      if (g.members) {
+        const n = plain(r.team.name);
+        return g.members.some((k) => n.includes(k));
+      }
+      return r.team.conference === g.conference && (!g.poule || norm(r.team.poule) === norm(g.poule));
+    });
 
   const groupStarted = (g) => rankGroup(g).some((r) => r.played > 0);
 
@@ -203,12 +283,15 @@ export default function RoadToPlayoffsPage() {
       ) : (
         <div className="space-y-8">
           <div className="space-y-6">
-            {rules.groups.map((g) => {
+            {rules.groups.map((g, gi) => {
               const list = rankGroup(g);
               return (
                 <div key={g.id}>
+                  {(gi === 0 || rules.groups[gi - 1].conference !== g.conference) && (
+                    <p className="display text-xl mb-3 mt-2">CONFÉRENCE {g.conference.toUpperCase()}</p>
+                  )}
                   <p className="condensed text-sm tracking-[0.15em] mb-2 text-[#3B7DD8]">
-                    {g.label.toUpperCase()} · {g.qualified} QUALIFIÉS
+                    {g.label.toUpperCase()} · {g.qualified} {g.qualified > 1 ? 'QUALIFIÉS' : 'QUALIFIÉ'}
                   </p>
                   <div className="rounded-lg overflow-hidden border border-[#2B4A82]">
                     <div className="grid grid-cols-[2rem,1fr,3rem,2rem,2.5rem] gap-1 px-3 py-2 text-[11px] mono text-[#7C8AAE] border-b border-[#2B4A82]">
@@ -298,7 +381,7 @@ export default function RoadToPlayoffsPage() {
                     })();
                     return champTeam ? (
                       <div className="mt-4 rounded-lg p-4 text-center bg-[#EF4135]/15 border border-[#EF4135]">
-                        <p className="condensed text-xs tracking-[0.2em] text-[#EF4135] mb-2">CHAMPION {label.toUpperCase()} · CASQUE D&apos;OR</p>
+                        <p className="condensed text-xs tracking-[0.2em] text-[#EF4135] mb-2">CHAMPION {label.toUpperCase()} · {String(fm.champion).toUpperCase()}</p>
                         <div className="flex items-center justify-center gap-3">
                           <TeamLogo team={champTeam} size={48} />
                           <span className="display text-2xl">{champTeam.name}</span>
@@ -308,9 +391,7 @@ export default function RoadToPlayoffsPage() {
                   })()}
                 </div>
               ))}
-              <p className="text-xs text-[#7C8AAE]">
-                * L'équipe qui reçoit est déterminée selon l'art. 56 du règlement particulier relatif aux compétitions de football américain. Les affiches se précisent au fil du classement et sont confirmées à la fin de la saison régulière.
-              </p>
+              <p className="text-xs text-[#7C8AAE]">{rules.note}</p>
             </div>
           </div>
         </div>
