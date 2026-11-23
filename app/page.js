@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../lib/AuthContext';
 import { CHAMPS } from '../components/ChampTabs';
@@ -39,6 +39,7 @@ export default function PronosticsPage() {
   const [newMatch, setNewMatch] = useState({ champ: 'elite', home_team_id: '', away_team_id: '', journee: '', date: '', time: '14:00' });
   const [notice, setNotice] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const loadId = useRef(0);
   const [hiddenMatches, setHiddenMatches] = useState([]);
   const [showHidden, setShowHidden] = useState(false);
   const [hiddenChamp, setHiddenChamp] = useState('elite');
@@ -50,7 +51,9 @@ export default function PronosticsPage() {
   };
 
   const load = async () => {
+    const myId = ++loadId.current;
     const { data: allTeams } = await supabase.from('teams').select('*').order('name');
+    if (myId !== loadId.current) return;
     const tByChamp = { elite: [], d1: [], d2: [] };
     (allTeams || []).forEach((t) => {
       if (tByChamp[t.champ]) tByChamp[t.champ].push(t);
@@ -62,6 +65,7 @@ export default function PronosticsPage() {
       .select('*, home:home_team_id(*), away:away_team_id(*)')
       .is('home_score', null)
       .order('kickoff_at', { ascending: true });
+    if (myId !== loadId.current) return;
     const mByChamp = { elite: [], d1: [], d2: [] };
     const horizon = Date.now() + VISIBLE_DAYS * 24 * 60 * 60 * 1000;
     const hidden = [];
@@ -81,6 +85,7 @@ export default function PronosticsPage() {
       .select('champ, home_team_id, away_team_id, home_score, away_score, kickoff_at')
       .not('home_score', 'is', null)
       .order('kickoff_at', { ascending: true });
+    if (myId !== loadId.current) return;
     const fByChamp = { elite: {}, d1: {}, d2: {} };
     (playedMatches || []).forEach((m) => {
       if (!fByChamp[m.champ]) return;
@@ -108,6 +113,7 @@ export default function PronosticsPage() {
         .select('match_id, choice')
         .eq('user_id', user.id)
         .in('match_id', ids);
+      if (myId !== loadId.current) return;
       const map = {};
       (preds || []).forEach((p) => {
         map[p.match_id] = p.choice;
