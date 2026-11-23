@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Flame, Users, CalendarDays, CalendarRange, Shield, Trophy, Medal, Image as ImageIcon, Instagram, Facebook } from 'lucide-react';
+import { Flame, Users, CalendarDays, CalendarRange, Shield, Trophy, Medal, BookOpen, Image as ImageIcon, Instagram, Facebook } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '../lib/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -12,6 +12,7 @@ const TABS = [
   { href: '/classement-equipes', label: 'Classement équipes', icon: Shield },
   { href: '/road-to-playoffs', label: 'Road to playoffs', icon: Medal },
   { href: '/classement-joueurs', label: 'Classement joueurs', icon: Trophy },
+  { href: '/regles', label: 'Règles', icon: BookOpen },
 ];
 export default function Nav() {
   const pathname = usePathname();
