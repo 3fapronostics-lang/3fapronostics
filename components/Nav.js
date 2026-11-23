@@ -6,13 +6,13 @@ import Image from 'next/image';
 import { useAuth } from '../lib/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 const TABS = [
-  { href: '/', label: 'Pronostics', icon: Flame },
-  { href: '/resultats', label: 'Résultats', icon: CalendarDays },
-  { href: '/calendrier', label: 'Calendrier', icon: CalendarRange },
-  { href: '/classement-equipes', label: 'Classement équipes', icon: Shield },
-  { href: '/road-to-playoffs', label: 'Road to playoffs', icon: Medal },
-  { href: '/classement-joueurs', label: 'Classement joueurs', icon: Trophy },
-  { href: '/regles', label: 'Règles', icon: BookOpen },
+  { href: '/', label: 'Pronostics', short: 'Pronos', icon: Flame },
+  { href: '/resultats', label: 'Résultats', short: 'Résultats', icon: CalendarDays },
+  { href: '/calendrier', label: 'Calendrier', short: 'Calendrier', icon: CalendarRange },
+  { href: '/classement-equipes', label: 'Classement équipes', short: 'Équipes', icon: Shield },
+  { href: '/road-to-playoffs', label: 'Road to playoffs', short: 'Playoffs', icon: Medal },
+  { href: '/classement-joueurs', label: 'Classement joueurs', short: 'Joueurs', icon: Trophy },
+  { href: '/regles', label: 'Règles', short: 'Règles', icon: BookOpen },
 ];
 export default function Nav() {
   const pathname = usePathname();
@@ -84,7 +84,7 @@ export default function Nav() {
         <div className="flex-1 bg-[#F7F7F5]" />
         <div className="flex-1 bg-[#EF4135]" />
       </div>
-      <nav className="max-w-4xl mx-auto px-4 sm:px-6 pt-3 flex gap-1 overflow-x-auto">
+      <nav className="max-w-4xl mx-auto px-2 sm:px-6 pt-2 flex gap-0.5 sm:gap-1 overflow-x-auto">
         {TABS.map((t) => {
           const active = pathname === t.href;
           const Icon = t.icon;
@@ -93,13 +93,15 @@ export default function Nav() {
               key={t.href}
               href={t.href}
               className={
-                'condensed font-semibold text-sm px-3.5 py-2 rounded-t-md whitespace-nowrap flex items-center gap-1.5 border-b-[3px] ' +
+                'condensed font-semibold text-[11px] sm:text-sm flex-1 sm:flex-none justify-center px-1 sm:px-3 py-1.5 rounded-t-md whitespace-nowrap flex items-center gap-1.5 border-b-[3px] ' +
                 (active
                   ? 'bg-[#F7F7F5] text-[#0A1F44] border-[#EF4135]'
                   : 'text-[#B7C1DA] border-[#2B4A82]')
               }
             >
-              <Icon size={14} /> {t.label.toUpperCase()}
+              <Icon size={14} className="hidden md:block" />
+              <span className="md:hidden">{t.short.toUpperCase()}</span>
+              <span className="hidden md:inline">{t.label.toUpperCase()}</span>
             </Link>
           );
         })}
