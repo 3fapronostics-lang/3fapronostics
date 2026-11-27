@@ -69,8 +69,12 @@ export default function CalendrierPage() {
     const key = h && h === a ? h : INTER;
     (groups[key] = groups[key] || []).push(m);
   });
-  const groupKeys = Object.keys(groups).sort((x, y) =>
-    x === INTER ? 1 : y === INTER ? -1 : x.localeCompare(y, 'fr')
+  Object.values(groups).forEach((arr) => arr.sort((x, y) => new Date(x.kickoff_at) - new Date(y.kickoff_at)));
+  const firstTime = (k) => new Date(groups[k][0].kickoff_at).getTime();
+  const groupKeys = Object.keys(groups).sort(
+    (x, y) =>
+      firstTime(x) - firstTime(y) ||
+      (x === INTER ? 1 : y === INTER ? -1 : x.localeCompare(y, 'fr'))
   );
   const showHeaders = groupKeys.length > 1 || groupKeys[0] !== INTER;
   const label = CHAMPS.find((c) => c.id === champ)?.label;
