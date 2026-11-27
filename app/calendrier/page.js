@@ -24,14 +24,12 @@ export default function CalendrierPage() {
   const [teams, setTeams] = useState({});
   const [matches, setMatches] = useState([]);
   const [journee, setJournee] = useState(null);
-  const [poule, setPoule] = useState('all');
   const [loading, setLoading] = useState(true);
   const loadId = useRef(0);
 
   useEffect(() => {
     const id = ++loadId.current;
     setLoading(true);
-    setPoule('all');
     (async () => {
       const { data: t } = await supabase.from('teams').select('*').eq('champ', champ);
       const { data: m } = await supabase
@@ -54,25 +52,27 @@ export default function CalendrierPage() {
     })();
   }, [champ]);
 
+  const journees = [...new Set(matches.map((x) => x.journee).filter((j) => j != null))].sort((a, b) => a - b);
+  const idx = journees.indexOf(journee);
+  const shown = matches.filter((m) => m.journee === journee);
+
+  // Regroupement par poule : même poule → section de la poule, sinon "Interpoules"
   const pouleOf = (id) => {
     const t = teams[String(id)];
     return t ? t.poule || t.conference || '' : '';
   };
-  const pouleOptions = [...new Set(Object.values(teams).map((t) => t.poule || t.conference || '').filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b, 'fr')
-  );
-  const inFilter = (m) => {
-    if (poule === 'all') return true;
+  const INTER = 'Interpoules';
+  const groups = {};
+  shown.forEach((m) => {
     const h = pouleOf(m.home_team_id);
     const a = pouleOf(m.away_team_id);
-    if (poule === '__inter') return h !== a;
-    return h === poule || a === poule;
-  };
-  const filtered = matches.filter(inFilter);
-  const journees = [...new Set(filtered.map((x) => x.journee).filter((j) => j != null))].sort((a, b) => a - b);
-  const effJournee = journees.includes(journee) ? journee : journees[0] ?? null;
-  const idx = journees.indexOf(effJournee);
-  const shown = filtered.filter((m) => m.journee === effJournee);
+    const key = h && h === a ? h : INTER;
+    (groups[key] = groups[key] || []).push(m);
+  });
+  const groupKeys = Object.keys(groups).sort((x, y) =>
+    x === INTER ? 1 : y === INTER ? -1 : x.localeCompare(y, 'fr')
+  );
+  const showHeaders = groupKeys.length > 1 || groupKeys[0] !== INTER;
   const label = CHAMPS.find((c) => c.id === champ)?.label;
 
   const Team = ({ id, right }) => {
@@ -96,28 +96,10 @@ export default function CalendrierPage() {
         Toute la saison, journée par journée. Les pronostics s&apos;ouvrent 7 jours avant chaque match.
       </p>
 
-      {!loading && pouleOptions.length > 1 && (
-        <div className="mb-3">
-          <select
-            value={poule}
-            onChange={(e) => setPoule(e.target.value)}
-            className="condensed text-base bg-[#0F2C5C] border border-[#2B4A82] rounded px-3 py-2 w-full"
-          >
-            <option value="all">Toutes les poules</option>
-            <option value="__inter">Matchs interpoules</option>
-            {pouleOptions.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
       {loading ? (
         <p className="text-[#B7C1DA]">Chargement…</p>
       ) : journees.length === 0 ? (
-        <p className="text-[#B7C1DA]">Aucun match pour ce filtre.</p>
+        <p className="text-[#B7C1DA]">Aucun match au calendrier pour le moment.</p>
       ) : (
         <>
           <div className="flex items-center justify-between gap-2 mb-4">
@@ -130,7 +112,7 @@ export default function CalendrierPage() {
               <ChevronLeft size={18} />
             </button>
             <select
-              value={effJournee ?? ''}
+              value={journee ?? ''}
               onChange={(e) => setJournee(parseInt(e.target.value, 10))}
               className="condensed text-lg font-semibold bg-[#0F2C5C] border border-[#2B4A82] rounded px-3 py-2 flex-1 text-center"
             >
@@ -150,22 +132,37 @@ export default function CalendrierPage() {
             </button>
           </div>
 
-          <div className="space-y-3">
-            {shown.map((m) => {
-              const played = m.home_score != null && m.away_score != null;
-              return (
-                <div key={m.id} className="rounded-lg border border-[#2B4A82] bg-[#0F2C5C] p-3">
-                  <p className="mono text-xs text-[#7C8AAE] mb-2">{fmtDate(m.kickoff_at)}</p>
-                  <div className="flex items-center gap-3">
-                    <Team id={m.home_team_id} />
-                    <span className="mono text-lg font-bold shrink-0 min-w-[64px] text-center">
-                      {played ? `${m.home_score} - ${m.away_score}` : 'vs'}
+          <div className="space-y-6">
+            {groupKeys.map((k) => (
+              <div key={k}>
+                {showHeaders && (
+                  <p className="condensed text-lg font-semibold mb-2 flex items-center gap-2">
+                    <span className="inline-block w-1 h-5 bg-[#EF4135] rounded" />
+                    {k.toUpperCase()}
+                    <span className="mono text-xs text-[#7C8AAE] font-normal">
+                      {groups[k].length} match{groups[k].length > 1 ? 's' : ''}
                     </span>
-                    <Team id={m.away_team_id} right />
-                  </div>
+                  </p>
+                )}
+                <div className="space-y-3">
+                  {groups[k].map((m) => {
+                    const played = m.home_score != null && m.away_score != null;
+                    return (
+                      <div key={m.id} className="rounded-lg border border-[#2B4A82] bg-[#0F2C5C] p-3">
+                        <p className="mono text-xs text-[#7C8AAE] mb-2">{fmtDate(m.kickoff_at)}</p>
+                        <div className="flex items-center gap-3">
+                          <Team id={m.home_team_id} />
+                          <span className="mono text-lg font-bold shrink-0 min-w-[64px] text-center">
+                            {played ? `${m.home_score} - ${m.away_score}` : 'vs'}
+                          </span>
+                          <Team id={m.away_team_id} right />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </>
       )}
